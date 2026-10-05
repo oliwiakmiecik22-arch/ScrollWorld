@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import masterVideo from "../assets/cocktail-world-master.mp4";
+import masterVideo from "../assets/cocktail-world-master-scroll.mp4";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -10,6 +10,10 @@ const MASTER_VIDEO = {
   poster: "",
   measuredDuration: 44.041667,
 };
+
+const SCROLL_LENGTH_VH = 40;
+const VIDEO_LERP = 0.18;
+const SEEK_THRESHOLD_SECONDS = 0.025;
 
 // All source-time decisions live here. Values are seconds in the Magnific master.
 const chapters = [
@@ -107,36 +111,31 @@ const chapters = [
 ];
 
 function IntroMoment() {
-  return <header className="intro-moment" aria-labelledby="intro-title"><div className="intro-eye" aria-hidden="true"><i /></div><h1 id="intro-title"><span>DISCOVER</span><span>YOUR</span><span>DESIRE</span></h1><p>Scroll to fall <b aria-hidden="true">↓</b></p></header>;
+  return <header className="intro-moment" aria-labelledby="intro-title"><h1 id="intro-title"><span>DISCOVER</span><span>YOUR</span><span>DESIRE</span></h1><p>Scroll to fall <b aria-hidden="true">↓</b></p></header>;
 }
 
 function ChapterMoment({ chapter }) {
   return (
     <section className={`chapter-overlay theme-${chapter.id}`} data-chapter={chapter.id} aria-labelledby={`${chapter.id}-title`}>
-      <div className="chapter-atmosphere" aria-hidden="true"><i className="atmosphere-orbit" /><i className="atmosphere-sigil" /><i className="atmosphere-beam" /></div>
-      <header className="moment hero-moment"><span>{chapter.number} / KEEP FALLING</span><h2 id={`${chapter.id}-title`}>{chapter.title}</h2><strong>{chapter.emotion}</strong><p>{chapter.heroLine}</p></header>
-      <article className="moment history-moment" aria-labelledby={`${chapter.id}-history`}><div className="history-place" aria-hidden="true">{chapter.place}</div><div className="history-year" aria-hidden="true">{chapter.year}</div><div className="history-readable"><span>History / perhaps</span><h3 id={`${chapter.id}-history`}>{chapter.historyTitle}</h3><p>{chapter.history}</p></div></article>
-      <article className="moment recipe-moment" aria-labelledby={`${chapter.id}-recipe`}><div className="recipe-readable"><span>Make the feeling</span><h3 id={`${chapter.id}-recipe`}>{chapter.recipeTitle}</h3><ol>{chapter.ingredients.map(([amount, ingredient]) => <li key={ingredient}><strong>{amount}</strong><em>{ingredient}</em></li>)}</ol><div className="method"><p><b>Preparation</b>{chapter.preparation}</p>{chapter.serve ? <p><b>Serve</b>{chapter.serve}</p> : null}<p><b>Garnish</b>{chapter.garnish}</p></div></div></article>
-      <div className="moment transition-moment" aria-hidden="true"><p>{chapter.transition}</p><b>↓</b></div>
+      <header className="moment hero-moment"><span>{chapter.number}</span><h2 id={`${chapter.id}-title`}>{chapter.title}</h2><strong>{chapter.emotion}</strong></header>
+      <article className="moment history-moment" aria-labelledby={`${chapter.id}-history`}><div className="history-place" aria-hidden="true">{chapter.place}</div><div className="history-year" aria-hidden="true">{chapter.year}</div><div className="history-readable"><span>History</span><h3 id={`${chapter.id}-history`}>{chapter.historyTitle}</h3><p>{chapter.history}</p></div></article>
+      <article className="moment recipe-moment" aria-labelledby={`${chapter.id}-recipe`}><div className="recipe-readable"><span>Recipe</span><h3 id={`${chapter.id}-recipe`}>{chapter.recipeTitle}</h3><ol>{chapter.ingredients.map(([amount, ingredient]) => <li key={ingredient}><strong>{amount}</strong><em>{ingredient}</em></li>)}</ol><div className="method"><p><b>Preparation</b>{chapter.preparation}</p>{chapter.serve ? <p><b>Serve</b>{chapter.serve}</p> : null}<p><b>Garnish</b>{chapter.garnish}</p></div></div></article>
     </section>
   );
 }
-
-function DepthLayers() {
-  return <><div className="depth depth-background" aria-hidden="true"><i /><i /><i /></div><div className="depth depth-midground" aria-hidden="true"><i /><i /><i /><i /></div><div className="depth depth-foreground" aria-hidden="true"><i /><i /></div><div className="golden-thread" aria-hidden="true" /><div className="world-grain" aria-hidden="true" /></>;
-}
-
-function OldFashionedDepth() {
-  return <div className="old-fashioned-depth" aria-hidden="true"><div className="old-distant"><i /><i /><i /><i /></div><div className="old-mid"><i /><i /><i /></div><div className="old-near"><i /><i /><i /><i /></div><div className="old-haze" /></div>;
-}
-
-const windowDuration = (start, end, minimum = 0.28) => Math.max(minimum, end - start);
 
 export function App() {
   const worldRef = useRef(null);
   const stageRef = useRef(null);
   const videoRef = useRef(null);
+  const targetTimeRef = useRef(0);
+  const smoothTimeRef = useRef(0);
+  const lastRequestedTimeRef = useRef(-1);
+  const rafRef = useRef(null);
+  const mediaReadyRef = useRef(false);
+  const debugRef = useRef(null);
   const timingAudit = new URLSearchParams(window.location.search).has("timing-audit");
+  const debugScroll = import.meta.env.DEV && new URLSearchParams(window.location.search).get("debugScroll") === "1";
 
   useLayoutEffect(() => {
     const world = worldRef.current;
@@ -144,83 +143,217 @@ export function App() {
     const video = videoRef.current;
     if (!world || !stage || !video) return undefined;
     let removeMetadataListener = () => {};
+    let lastFrameTimestamp = 0;
+    let debugRafId = null;
+    let debugFrameCount = 0;
+    let debugFps = 0;
+    let debugFpsStartedAt = performance.now();
+    let debugScrollVelocity = 0;
+    let activeSeekStartedAt = 0;
+    const debugSeekEvents = [];
+    const debugSeekLatencies = [];
+
+    const recordSeek = (nextTime) => {
+      if (!debugScroll) return;
+      debugSeekEvents.push({ at: performance.now(), distance: Math.abs(nextTime - video.currentTime) });
+      if (debugSeekEvents.length > 240) debugSeekEvents.splice(0, debugSeekEvents.length - 240);
+    };
+
+    const handleSeeking = () => { activeSeekStartedAt = performance.now(); };
+    const handleSeeked = () => {
+      if (!activeSeekStartedAt) return;
+      debugSeekLatencies.push(performance.now() - activeSeekStartedAt);
+      if (debugSeekLatencies.length > 120) debugSeekLatencies.shift();
+      activeSeekStartedAt = 0;
+    };
+
+    const updateDebugOverlay = (timestamp) => {
+      debugFrameCount += 1;
+      const fpsWindow = timestamp - debugFpsStartedAt;
+      if (fpsWindow >= 500) {
+        debugFps = (debugFrameCount * 1000) / fpsWindow;
+        debugFrameCount = 0;
+        debugFpsStartedAt = timestamp;
+      }
+
+      const recentSeeks = debugSeekEvents.filter((event) => timestamp - event.at <= 1000);
+      const seekDistance = recentSeeks.length
+        ? recentSeeks.reduce((sum, event) => sum + event.distance, 0) / recentSeeks.length
+        : 0;
+      const seekLatency = debugSeekLatencies.length
+        ? debugSeekLatencies.reduce((sum, value) => sum + value, 0) / debugSeekLatencies.length
+        : 0;
+      const targetTime = targetTimeRef.current;
+      const chapter = [...chapters].reverse().find((item) => targetTime >= item.chapterStart) ?? chapters[0];
+
+      if (debugRef.current) {
+        debugRef.current.textContent = [
+          `SCROLL PROGRESS  ${video.dataset.masterProgress ?? "0.0000"}`,
+          `TARGET TIME      ${targetTime.toFixed(3)} s`,
+          `ACTUAL TIME      ${video.currentTime.toFixed(3)} s`,
+          `SEEK DIFFERENCE  ${(targetTime - video.currentTime).toFixed(3)} s`,
+          `CURRENT CHAPTER  ${chapter.title}`,
+          `FPS              ${debugFps.toFixed(1)}`,
+          `SCROLL VELOCITY  ${debugScrollVelocity.toFixed(0)} px/s`,
+          `SEEK RATE        ${recentSeeks.length} /s`,
+          `AVG SEEK STEP    ${seekDistance.toFixed(3)} s`,
+          `AVG SEEK LATENCY ${seekLatency.toFixed(1)} ms`,
+          `RAF LOOPS        ${rafRef.current === null ? 1 : 2}`,
+          `SCROLLTRIGGERS   ${ScrollTrigger.getAll().length}`,
+        ].join("\n");
+      }
+      debugRafId = requestAnimationFrame(updateDebugOverlay);
+    };
+
+    const stopVideoController = () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    };
+
+    const updateVideoFrame = (timestamp) => {
+      const targetTime = targetTimeRef.current;
+      const delta = targetTime - smoothTimeRef.current;
+      smoothTimeRef.current = Math.abs(delta) < 0.004
+        ? targetTime
+        : smoothTimeRef.current + delta * VIDEO_LERP;
+
+      const desiredTime = Math.min(video.duration || MASTER_VIDEO.measuredDuration, Math.max(0, smoothTimeRef.current));
+      const requestedDelta = Math.abs(desiredTime - lastRequestedTimeRef.current);
+      const mediaDelta = Math.abs(desiredTime - video.currentTime);
+      const frameIntervalElapsed = timestamp - lastFrameTimestamp >= 32;
+
+      if (
+        mediaReadyRef.current
+        && !video.seeking
+        && frameIntervalElapsed
+        && requestedDelta >= SEEK_THRESHOLD_SECONDS
+        && mediaDelta >= SEEK_THRESHOLD_SECONDS
+      ) {
+        recordSeek(desiredTime);
+        video.currentTime = desiredTime;
+        lastRequestedTimeRef.current = desiredTime;
+        lastFrameTimestamp = timestamp;
+      }
+
+      if (Math.abs(targetTime - smoothTimeRef.current) >= 0.004 || video.seeking) {
+        rafRef.current = requestAnimationFrame(updateVideoFrame);
+      } else {
+        if (mediaReadyRef.current && !video.seeking && Math.abs(video.currentTime - targetTime) >= 0.004) {
+          recordSeek(targetTime);
+          video.currentTime = targetTime;
+          lastRequestedTimeRef.current = targetTime;
+        }
+        rafRef.current = null;
+      }
+    };
+
+    const startVideoController = () => {
+      if (rafRef.current === null) rafRef.current = requestAnimationFrame(updateVideoFrame);
+    };
+
     const context = gsap.context(() => {
       const mm = gsap.matchMedia();
       mm.add("(prefers-reduced-motion: no-preference)", () => {
         const duration = MASTER_VIDEO.measuredDuration;
-        const syncVideo = (progress) => {
+        const setVideoTarget = (progress) => {
           const value = Math.min(1, Math.max(0, progress));
           const nextTime = duration * value;
+          targetTimeRef.current = nextTime;
           video.dataset.masterProgress = value.toFixed(4);
           video.dataset.masterTime = nextTime.toFixed(3);
-          if (!Number.isFinite(video.duration) || video.duration <= 0) return;
-          video.pause();
-          if (Math.abs(video.currentTime - nextTime) > 0.01) video.currentTime = Math.min(video.duration, nextTime);
+          startVideoController();
         };
         const timeline = gsap.timeline({
           defaults: { ease: "none" },
-          scrollTrigger: { trigger: world, start: "top top", end: "+=8800%", pin: stage, scrub: 0.45, anticipatePin: 1, invalidateOnRefresh: true, onUpdate: (self) => syncVideo(self.progress) },
+          scrollTrigger: {
+            trigger: world,
+            start: "top top",
+            end: `+=${SCROLL_LENGTH_VH * 100}%`,
+            pin: stage,
+            scrub: true,
+            anticipatePin: 1,
+            invalidateOnRefresh: true,
+            onUpdate: (self) => {
+              debugScrollVelocity = self.getVelocity();
+              setVideoTarget(self.progress);
+            },
+          },
         });
         timeline
           .to({}, { duration }, 0)
-          .fromTo(".master-media", { opacity: 0.42 }, { opacity: 1, duration: 1.2 }, 0)
-          .to(".intro-moment", { y: "-52vh", opacity: 0, duration: 0.72 }, 0.72)
-          .fromTo(".depth-background", { y: "24vh", rotation: -3 }, { y: "-70vh", rotation: 7, duration }, 0)
-          .fromTo(".depth-midground", { y: "70vh", rotation: 4 }, { y: "-205vh", rotation: -16, duration }, 0)
-          .fromTo(".depth-foreground", { y: "120vh", x: "-4vw", rotation: -8 }, { y: "-470vh", x: "8vw", rotation: 25, duration }, 0)
-          .fromTo(".golden-thread", { y: "80vh" }, { y: "-300vh", rotation: -8, duration }, 0);
+          .to(".intro-moment", { y: "-28vh", opacity: 0, duration: 0.72 }, 0.72);
 
         chapters.forEach((chapter, index) => {
           const selector = `[data-chapter="${chapter.id}"]`;
           const heroIn = Math.max(chapter.chapterStart, chapter.heroReveal - 0.35);
           const heroOut = chapter.id === "old-fashioned" ? chapter.historyStart : chapter.descentStart;
+          const historyIn = Math.max(chapter.descentStart, Math.min(chapter.historyStart, chapter.recipeStart - 0.9));
+          const historyOut = Math.min(chapter.transitionStart, Math.max(chapter.historyEnd, chapter.recipeStart + 0.12));
+          const recipeIn = Math.max(chapter.historyStart + 0.25, Math.min(chapter.recipeStart, chapter.chapterEnd - 1.15));
+          const recipeOut = chapter.chapterEnd - 0.08;
           timeline
-            .fromTo(`${selector} .chapter-atmosphere`, { opacity: 0 }, { opacity: 0.7, duration: 0.45 }, chapter.chapterStart)
-            .to(`${selector} .chapter-atmosphere`, { opacity: 0, duration: 0.38 }, Math.max(chapter.chapterStart, chapter.chapterEnd - 0.38))
             .fromTo(`${selector} .hero-moment`, { opacity: 0, y: "20vh" }, { opacity: 1, y: 0, duration: 0.45 }, heroIn)
             .to(`${selector} .hero-moment`, { opacity: 0, y: "-42vh", duration: 0.5 }, Math.max(heroIn + 0.45, heroOut - 0.38))
-            .fromTo(`${selector} .history-place`, { opacity: 0, x: index % 2 ? "20vw" : "-20vw" }, { opacity: 0.43, x: 0, duration: 0.36 }, chapter.historyStart)
-            .fromTo(`${selector} .history-year`, { opacity: 0, y: "18vh" }, { opacity: 0.74, y: 0, duration: 0.32 }, chapter.historyStart + 0.08)
-            .fromTo(`${selector} .history-readable`, { opacity: 0, y: "16vh" }, { opacity: 1, y: 0, duration: 0.34 }, chapter.historyStart + 0.12)
-            .to(`${selector} .history-moment`, { opacity: 0, y: "-28vh", duration: 0.34 }, Math.max(chapter.historyStart + 0.34, chapter.historyEnd - 0.3))
-            .fromTo(`${selector} .recipe-readable`, { opacity: 0, y: "22vh" }, { opacity: 1, y: 0, duration: 0.34 }, chapter.recipeStart)
-            .fromTo(`${selector} .recipe-readable li`, { opacity: 0, y: "12vh", rotation: -3 }, { opacity: 1, y: 0, rotation: 0, duration: 0.22, stagger: 0.06 }, chapter.recipeStart + 0.12)
-            .fromTo(`${selector} .method`, { opacity: 0, y: "10vh" }, { opacity: 1, y: 0, duration: 0.28 }, chapter.recipeStart + 0.28)
-            .to(`${selector} .recipe-moment`, { opacity: 0, y: "-30vh", duration: 0.34 }, Math.max(chapter.recipeStart + 0.4, chapter.recipeEnd - 0.3))
-            .fromTo(`${selector} .transition-moment`, { opacity: 0, y: "22vh" }, { opacity: 1, y: 0, duration: windowDuration(chapter.transitionStart, chapter.chapterEnd) * 0.45 }, chapter.transitionStart)
-            .to(`${selector} .transition-moment`, { opacity: 0, y: "-20vh", duration: 0.24 }, Math.max(chapter.transitionStart + 0.25, chapter.chapterEnd - 0.2));
+            .fromTo(`${selector} .history-place`, { opacity: 0, x: index % 2 ? "20vw" : "-20vw" }, { opacity: 0.43, x: 0, duration: 0.24 }, historyIn)
+            .fromTo(`${selector} .history-year`, { opacity: 0, y: "18vh" }, { opacity: 0.74, y: 0, duration: 0.24 }, historyIn + 0.06)
+            .fromTo(`${selector} .history-readable`, { opacity: 0, y: "16vh" }, { opacity: 1, y: 0, duration: 0.26 }, historyIn + 0.1)
+            .to(`${selector} .history-moment`, { opacity: 0, y: "-28vh", duration: 0.22 }, Math.max(historyIn + 0.36, historyOut - 0.22))
+            .fromTo(`${selector} .recipe-readable`, { opacity: 0, y: "22vh" }, { opacity: 1, y: 0, duration: 0.28 }, recipeIn)
+            .fromTo(`${selector} .recipe-readable li`, { opacity: 0, y: "12vh", rotation: -3 }, { opacity: 1, y: 0, rotation: 0, duration: 0.2, stagger: 0.05 }, recipeIn + 0.1)
+            .fromTo(`${selector} .method`, { opacity: 0, y: "10vh" }, { opacity: 1, y: 0, duration: 0.24 }, recipeIn + 0.22)
+            .to(`${selector} .recipe-moment`, { opacity: 0, y: "-30vh", duration: 0.24 }, Math.max(recipeIn + 0.4, recipeOut - 0.24));
         });
 
         const old = chapters.at(-1);
         timeline
-          .to(".depth, .golden-thread", { opacity: 0.14, duration: 0.65 }, old.chapterStart)
-          .fromTo(".old-fashioned-depth", { opacity: 0 }, { opacity: 1, duration: 0.35 }, old.chapterStart)
-          .fromTo(".old-distant", { y: "14vh" }, { y: "-12vh", duration: old.chapterEnd - old.chapterStart }, old.chapterStart)
-          .fromTo(".old-mid", { y: "75vh", rotation: -2 }, { y: "-95vh", rotation: 8, duration: old.chapterEnd - old.chapterStart }, old.chapterStart)
-          .fromTo(".old-near", { y: "125vh", x: "-5vw", rotation: -9 }, { y: "-245vh", x: "9vw", rotation: 18, duration: old.chapterEnd - old.chapterStart }, old.chapterStart)
-          .fromTo(".old-haze", { y: "35vh", opacity: 0 }, { y: "-45vh", opacity: 0.72, duration: old.chapterEnd - old.chapterStart }, old.chapterStart)
           .fromTo('[data-chapter="old-fashioned"] .hero-moment', { opacity: 0, y: "16vh" }, { opacity: 1, y: 0, duration: 0.36 }, 42.78);
 
-        const syncWhenReady = () => syncVideo(timeline.scrollTrigger?.progress ?? 0);
-        if (video.readyState >= 1) syncWhenReady();
+        const initializeVideo = () => {
+          const progress = timeline.scrollTrigger?.progress ?? 0;
+          const initialTime = duration * progress;
+          mediaReadyRef.current = true;
+          targetTimeRef.current = initialTime;
+          smoothTimeRef.current = initialTime;
+          lastRequestedTimeRef.current = initialTime;
+          video.pause();
+          recordSeek(initialTime);
+          video.currentTime = Math.min(video.duration, initialTime);
+          video.dataset.masterProgress = progress.toFixed(4);
+          video.dataset.masterTime = initialTime.toFixed(3);
+        };
+        if (video.readyState >= 2) initializeVideo();
         else {
-          video.addEventListener("loadedmetadata", syncWhenReady, { once: true });
-          removeMetadataListener = () => video.removeEventListener("loadedmetadata", syncWhenReady);
+          video.addEventListener("loadeddata", initializeVideo, { once: true });
+          removeMetadataListener = () => video.removeEventListener("loadeddata", initializeVideo);
         }
       });
       return () => mm.revert();
     }, world);
+    if (debugScroll) {
+      video.addEventListener("seeking", handleSeeking);
+      video.addEventListener("seeked", handleSeeked);
+      debugRafId = requestAnimationFrame(updateDebugOverlay);
+    }
     ScrollTrigger.refresh();
-    return () => { removeMetadataListener(); context.revert(); };
+    return () => {
+      removeMetadataListener();
+      stopVideoController();
+      if (debugRafId !== null) cancelAnimationFrame(debugRafId);
+      video.removeEventListener("seeking", handleSeeking);
+      video.removeEventListener("seeked", handleSeeked);
+      mediaReadyRef.current = false;
+      context.revert();
+    };
   }, []);
 
   return (
     <main className="experience">
       <section className={`scroll-world${timingAudit ? " timing-audit" : ""}`} ref={worldRef} aria-label="A continuous descent through seven cocktail worlds">
         <div className="world-stage" ref={stageRef}>
-          <div className="master-media" aria-hidden="true"><video ref={videoRef} src={MASTER_VIDEO.src} preload="auto" muted playsInline tabIndex={-1} /></div>
-          <div className="world-shade" aria-hidden="true" /><DepthLayers /><OldFashionedDepth /><IntroMoment />
+          <div className="master-media" aria-hidden="true"><video ref={videoRef} src={MASTER_VIDEO.src} preload="auto" muted playsInline controls={false} tabIndex={-1} /></div>
+          <IntroMoment />
           {chapters.map((chapter) => <ChapterMoment chapter={chapter} key={chapter.id} />)}
+          {debugScroll ? <output className="scroll-debug" ref={debugRef} aria-live="off" /> : null}
         </div>
       </section>
     </main>
