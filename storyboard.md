@@ -1,3 +1,5 @@
+> Historical pre-production artifact retained to show development history. See `docs/project-plan.md` for the final journey.
+
 # Your Cocktail Guide — Modular Scroll Storyboard
 
 ## Continuous route

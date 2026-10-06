@@ -1,3 +1,5 @@
+> Historical pre-production artifact. The final eight-cocktail concept is documented in `docs/project-plan.md`.
+
 # Your Cocktail Guide — Concept
 
 ## Core proposition

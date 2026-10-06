@@ -1,3 +1,5 @@
+> Historical pre-production artifact. The final implementation plan is documented in `docs/project-plan.md`.
+
 # Your Cocktail Guide — Seven-World Master Timeline
 
 ## Architecture

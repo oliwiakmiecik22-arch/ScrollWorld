@@ -1,3 +1,5 @@
+> Historical pre-production artifact retained to show development history. See `docs/magnific-workflow.md` for the final media workflow.
+
 # Your Cocktail Guide — Modular Asset Plan
 
 ## Production strategy
