@@ -2,7 +2,9 @@
 
 ## Live Website
 
-Live URL: PENDING DEPLOYMENT
+Live URL: [https://oliwiakmiecik22-arch.github.io/ScrollWorld/](https://oliwiakmiecik22-arch.github.io/ScrollWorld/)
+
+GitHub repository: [oliwiakmiecik22-arch/ScrollWorld](https://github.com/oliwiakmiecik22-arch/ScrollWorld)
 
 ## Concept
 
@@ -106,6 +108,8 @@ npm run preview
 ```
 
 The preview command serves the built `dist/` output. `dist/` and `node_modules/` are intentionally excluded from Git.
+
+The public site is built and deployed from `main` by the GitHub Pages workflow in `.github/workflows/deploy-pages.yml`.
 
 ## Credits / Tools
 
