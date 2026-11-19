@@ -1,0 +1,184 @@
+/* Stage 5: static editorial drawer layouts. Import in the layouts layer after components.
+   Navbar geometry, modal behavior and all Action interaction states stay in components.css. */
+.sip-navbar__drawer {
+  width: min(680px, 100%);
+  padding: var(--sip-space-8);
+  background: var(--sip-color-surface);
+  /* The existing viewport/safe-area max-height and independent scrolling are retained. */
+  scroll-padding-block: var(--sip-space-6);
+}
+
+.sip-navbar__drawer-top {
+  align-items: flex-start;
+  gap: var(--sip-space-6);
+  margin-bottom: var(--sip-space-6);
+  padding-bottom: var(--sip-space-6);
+  border-bottom: var(--sip-border);
+}
+
+.sip-navbar__drawer-heading { min-width: 0; }
+
+.sip-navbar__drawer-eyebrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sip-space-2) var(--sip-space-4);
+  margin: 0 0 var(--sip-space-3);
+  color: var(--sip-color-pink);
+  font: 400 var(--sip-type-label)/var(--sip-leading-body) var(--sip-font-ui);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.sip-navbar__drawer-count {
+  color: var(--sip-color-muted);
+  letter-spacing: .04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.sip-navbar__drawer-top h2 {
+  max-width: 22ch;
+  font: 500 clamp(1.25rem, 2.2vw, 1.625rem)/1.4 var(--sip-font-display);
+  letter-spacing: -.035em;
+  text-wrap: balance;
+}
+
+.sip-navbar__list li + li {
+  margin-top: var(--sip-space-1);
+  padding-top: var(--sip-space-1);
+  border-top: var(--sip-border);
+}
+
+/* Only row layout and typography: selected/current, hover, focus, pressed and disabled
+   remain the shared Action contract without any later-layer state overrides. */
+.sip-navbar__list .sip-action--row {
+  min-height: var(--sip-navbar-height);
+  padding: var(--sip-space-4) var(--sip-space-3);
+}
+
+.sip-navbar__list .sip-action--row .sip-action__content {
+  grid-template-columns: var(--sip-space-8) minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--sip-space-2) var(--sip-space-4);
+}
+
+.sip-navbar__list .sip-journey-number {
+  grid-row: 1;
+  align-self: baseline;
+  color: var(--sip-color-lilac);
+  font-size: var(--sip-type-label);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.sip-navbar__list .sip-journey-name {
+  min-width: 0;
+  font: 500 1.125rem/1.3 var(--sip-font-ui);
+  letter-spacing: .015em;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+.sip-navbar__list .sip-journey-emotion {
+  min-width: 0;
+  font: 400 .9375rem/1.4 var(--sip-font-ui);
+  letter-spacing: .015em;
+  overflow-wrap: anywhere;
+}
+
+.sip-navbar__list .sip-journey-state {
+  grid-row: 1 / 3;
+  font: 400 var(--sip-type-label)/1.4 var(--sip-font-ui);
+  letter-spacing: .015em;
+  white-space: nowrap;
+}
+
+.sip-navbar__about-reading:not([hidden]) {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  align-items: start;
+  gap: var(--sip-space-8);
+  padding-block: var(--sip-space-2) var(--sip-space-4);
+}
+
+.sip-navbar__about-logo {
+  width: 100%;
+  max-width: 132px;
+  height: auto;
+  margin: 0;
+}
+
+.sip-navbar__about-copy { min-width: 0; }
+
+.sip-navbar__about-copy p {
+  margin: 0;
+  font: 400 var(--sip-type-body)/1.6 var(--sip-font-ui);
+  text-wrap: pretty;
+}
+
+.sip-navbar__about-copy p:first-child {
+  color: var(--sip-color-cream);
+  font-size: 1.25rem;
+  line-height: var(--sip-leading-body);
+}
+
+.sip-navbar__about-copy p + p { margin-top: var(--sip-space-6); }
+
+@media (max-width: 700px) {
+  .sip-navbar__drawer {
+    padding: var(--sip-space-6);
+    scroll-padding-block: var(--sip-space-4);
+  }
+
+  .sip-navbar__drawer-top { gap: var(--sip-space-4); }
+}
+
+@media (max-width: 480px) {
+  .sip-navbar__drawer { padding: var(--sip-page-gutter); }
+
+  .sip-navbar__drawer-top {
+    margin-bottom: var(--sip-space-4);
+    padding-bottom: var(--sip-space-6);
+  }
+
+  .sip-navbar__drawer-top h2 { font-size: 1.1875rem; }
+
+  .sip-navbar__list .sip-action--row .sip-action__content {
+    grid-template-columns: var(--sip-space-6) minmax(0, 1fr);
+    column-gap: var(--sip-space-3);
+  }
+
+  .sip-navbar__list .sip-journey-name { font-size: 1.0625rem; }
+
+  .sip-navbar__list .sip-journey-state {
+    grid-column: 2;
+    grid-row: 3;
+    justify-self: start;
+  }
+
+  .sip-navbar__about-reading:not([hidden]) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--sip-space-6);
+  }
+
+  .sip-navbar__about-logo { max-width: 112px; }
+  .sip-navbar__about-copy p:first-child { font-size: 1.1875rem; }
+}
+
+/* The same shell, with less vertical whitespace on short landscape viewports. */
+@media (max-height: 520px) and (orientation: landscape) {
+  .sip-navbar__drawer {
+    padding: var(--sip-space-4) var(--sip-space-6);
+    scroll-padding-block: var(--sip-space-4);
+  }
+
+  .sip-navbar__drawer-top {
+    gap: var(--sip-space-4);
+    margin-bottom: var(--sip-space-3);
+    padding-bottom: var(--sip-space-4);
+  }
+
+  .sip-navbar__drawer-eyebrow { margin-bottom: var(--sip-space-1); }
+  .sip-navbar__drawer-top h2 { font-size: 1.25rem; }
+  .sip-navbar__list .sip-action--row { min-height: var(--sip-control-height); }
+}

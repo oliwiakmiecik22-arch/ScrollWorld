@@ -1,0 +1,112 @@
+/* Immersive Cosmic Interface: desktop Intro proof only.
+   The existing portal asset, scene handlers and timelines remain in place.
+   The environment stands alone: no peripheral imagery or replacement decoration. */
+@media (min-width: 1100px) and (min-height: 600px) {
+  .cosmic-intro .cosmic-intro-video { transform: scale(1.2); }
+
+  /* An opaque floating object, not a full-width masthead or glass capsule. */
+  .cosmic-intro .sip-navbar__bar {
+    width: 360px;
+    min-height: 60px;
+    padding: 5px 12px;
+    column-gap: 14px;
+    border: 1px solid rgb(255 248 242 / 14%);
+    border-radius: 28px;
+    background: #141218;
+    box-shadow: none;
+  }
+  .cosmic-intro .sip-navbar__logo { height: 40px; }
+  .cosmic-intro .sip-navbar__home { padding: 0 4px; border-radius: 10px; }
+  .cosmic-intro .sip-navbar__bar .sip-action--nav {
+    height: 44px;
+    padding: 0 12px;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    font: 500 12px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    letter-spacing: .025em;
+  }
+  .cosmic-intro .sip-navbar__bar .sip-action--nav .sip-action__content {
+    padding: 0;
+    background: transparent;
+    text-decoration: none;
+  }
+
+  /* The portal stays unobstructed. One quiet line sits below its halo. */
+  .cosmic-intro .cosmic-intro-title {
+    inset: auto;
+    top: calc(79svh - 24px);
+    left: 50%;
+    display: flex;
+    flex-direction: row;
+    gap: .32em;
+    width: max-content;
+    height: auto;
+    max-width: 90%;
+    font: 500 clamp(24px, 2.1vw, 34px)/1.25 var(--sip-font-display);
+    letter-spacing: -.025em;
+    color: var(--sip-color-cream);
+    transform: translateX(-50%);
+  }
+  .cosmic-intro .cosmic-intro-title span {
+    position: static;
+    inset: auto;
+    font: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+    text-shadow: none;
+  }
+  /* A single quiet entry control; no offset edge or separate arrow tile. */
+  .cosmic-intro .sip-scroll-action {
+    top: auto;
+    bottom: calc(3.5svh + 24px);
+    width: 208px;
+    height: 48px;
+    min-width: 0;
+    padding: 0 20px;
+    border: 1px solid var(--sip-color-cream);
+    border-radius: 999px;
+    color: var(--sip-color-night);
+    background: var(--sip-color-cream);
+    box-shadow: none;
+    font: 500 12px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    letter-spacing: .035em;
+  }
+  .cosmic-intro .sip-scroll-action .sip-action__content {
+    width: 100%;
+    justify-content: space-between;
+    gap: 12px;
+    text-decoration: none;
+  }
+  .cosmic-intro .sip-scroll-action .sip-icon {
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border-radius: 0;
+    color: currentColor;
+    background: transparent;
+  }
+  .cosmic-intro .sip-navbar__bar .sip-action:focus-visible,
+  .cosmic-intro .sip-scroll-action:focus-visible {
+    outline: 2px solid var(--sip-color-pink);
+    outline-offset: 4px;
+  }
+  .cosmic-intro .sip-navbar__bar .sip-action--nav[aria-expanded="true"] {
+    color: var(--sip-color-night);
+    background: var(--sip-color-pink);
+  }
+  @media (hover: hover) {
+    .cosmic-intro .sip-navbar__bar .sip-action--nav:hover {
+      border-color: rgb(255 248 242 / 24%);
+      color: var(--sip-color-cream);
+      background: #242128;
+    }
+    .cosmic-intro .sip-scroll-action:hover:not(:disabled) {
+      border-color: white;
+      color: var(--sip-color-night);
+      background: white;
+    }
+    .cosmic-intro .sip-scroll-action:hover:not(:disabled) .sip-icon {
+      background: transparent;
+    }
+  }
+}

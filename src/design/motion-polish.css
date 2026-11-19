@@ -1,0 +1,30 @@
+/* Motion-only layer. Approved layout, type, geometry and color rules stay untouched. */
+:root {
+  --sip-motion-fast: 140ms;
+  --sip-motion-hover: 200ms;
+  --sip-motion-content: 300ms;
+  --sip-motion-panel: 460ms;
+  --sip-motion-close: 380ms;
+  --sip-motion-cinematic: 720ms;
+  --sip-motion-ease: cubic-bezier(.22, .61, .36, 1);
+  --sip-duration-fast: var(--sip-motion-fast);
+  --sip-duration-standard: var(--sip-motion-hover);
+}
+.sip-action { transition-duration: var(--sip-motion-hover); transition-timing-function: var(--sip-motion-ease); }
+.sip-action .sip-action__content { transition-duration: var(--sip-motion-fast); transition-timing-function: var(--sip-motion-ease); }
+.sip-action:not(.sip-action--logo):not(:disabled):active .sip-action__content { transform: translateY(1px) scale(.99); }
+.cosmic-intro .sip-scroll-action .sip-icon { transition: translate var(--sip-motion-hover) var(--sip-motion-ease); }
+@media (hover: hover) {
+  .cosmic-intro .sip-scroll-action:not(:disabled):hover .sip-icon { translate: 0 3px; }
+
+}
+/* JS owns content/chapter lifecycles, so old CSS entrances must not compete with it. */
+.cocktail-hud { animation: none; }
+/* The removed legacy hud-in keyframe used to supply the visible resting opacity. */
+.cocktail-hud.is-visible { opacity: 1; }
+.cocktail-hud.is-expanded .info-control.is-open .info-panel { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .sip-action, .sip-action .sip-action__content, .cosmic-intro .sip-scroll-action .sip-icon { transition-duration: .01ms; transition-delay: 0ms; }
+  .sip-action:not(.sip-action--logo):not(:disabled):active .sip-action__content { transform: none; }
+  .cosmic-intro .sip-scroll-action:not(:disabled):hover .sip-icon { translate: none; }
+}

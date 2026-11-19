@@ -1,0 +1,15 @@
+/* Explicit cascade order prevents legacy screen-specific rules from restyling shared controls. */
+@layer legacy, foundations, components, layouts;
+@import "../styles.css" layer(legacy);
+@import "./tokens.css" layer(foundations);
+@import "./components.css" layer(components);
+@import "./screens.css" layer(layouts);
+@import "./drawers.css" layer(layouts);
+@import "./immersive-intro.css" layer(layouts);
+@import "./minimal-interface.css" layer(layouts);
+@import "./entry-review.css" layer(layouts);
+@import "./negroni-prototype.css" layer(layouts);
+@import "./motion-polish.css" layer(layouts);
+@import "./navigation-motion.css" layer(layouts);
+@import "./logo-focus.css" layer(layouts);
+@import "./unified-hud.css" layer(layouts);

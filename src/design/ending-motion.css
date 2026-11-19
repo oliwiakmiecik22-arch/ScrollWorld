@@ -1,0 +1,31 @@
+/* Motion-only adapters: existing ending geometry, palette and focus ring stay intact. */
+.ending-content .enter-again .sip-action__content {
+  transition: transform 140ms cubic-bezier(.16, 1, .3, 1);
+}
+
+.ending-content .enter-again .sip-icon {
+  transition: transform 200ms cubic-bezier(.16, 1, .3, 1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ending-content .enter-again:not(:disabled):hover .sip-icon {
+    transform: translateX(2px);
+  }
+}
+
+.ending-content .enter-again:not(:disabled):focus-visible .sip-icon {
+  transform: translateX(2px);
+}
+
+.ending-content .enter-again:not(:disabled):active .sip-action__content {
+  transform: translateY(1px) scale(.99);
+  transition-duration: 140ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ending-content .enter-again .sip-action__content,
+  .ending-content .enter-again .sip-icon {
+    transition: none !important;
+    transform: none !important;
+  }
+}

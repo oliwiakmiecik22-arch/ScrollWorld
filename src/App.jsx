@@ -1,17 +1,53 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import gsap from "gsap";
+import Flip from "gsap/Flip";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import masterVideo from "../assets/video/cocktail-world-master-v2-scroll.mp4";
-import sipLogo from "../assets/images/ChatGPT Image Oct 5, 2026, 10_32_26 PM.png";
+import mobileVideo from "../assets/video/delivery/cocktail-world-mobile-960.mp4";
+import introPoster from "../assets/images/intro-poster.webp";
+import negroniStill from "../assets/images/reduced-motion/negroni.webp";
+import dirtyMartiniStill from "../assets/images/reduced-motion/dirty-martini.webp";
+import margaritaStill from "../assets/images/reduced-motion/margarita.webp";
+import maiTaiStill from "../assets/images/reduced-motion/mai-tai.webp";
+import manhattanStill from "../assets/images/reduced-motion/manhattan.webp";
+import espressoMartiniStill from "../assets/images/reduced-motion/espresso-martini.webp";
+import oldFashionedStill from "../assets/images/reduced-motion/old-fashioned.webp";
+import french75Still from "../assets/images/reduced-motion/french-75.webp";
+import sipLogo from "../assets/brand/the-sip.svg";
+import originalSipLogo from "../assets/brand/the-sip-legacy.svg";
+
+import LiquidAfterimage from "./LiquidAfterimage";
+import { Action, ArrowIcon, CloseIcon } from "./components/Action";
+import { SiteNavigation as SharedNavigation } from "./components/SiteNavigation";
+
+import { EndingContent } from "./components/EndingContent";
+import { getChapterTargetTime, getEndingState, getExperienceMode, getPortalHandoffScale, selectExperienceVideo } from "./phase1";
+import { MOTION, motionDistance } from "./motion/tokens";
 
 gsap.registerPlugin(ScrollTrigger);
+gsap.registerPlugin(Flip);
 
 const MASTER_VIDEO = {
-  src: masterVideo,
-  poster: "",
+  poster: introPoster,
   measuredDuration: 81,
   frameRate: 24,
   lastFrameTime: 80.958333,
+};
+
+const VIDEO_SOURCES = {
+  desktop: masterVideo,
+  mobile: mobileVideo,
+};
+
+const REDUCED_MOTION_STILLS = {
+  negroni: negroniStill,
+  "dirty-martini": dirtyMartiniStill,
+  margarita: margaritaStill,
+  "mai-tai": maiTaiStill,
+  manhattan: manhattanStill,
+  "espresso-martini": espressoMartiniStill,
+  "old-fashioned": oldFashionedStill,
+  "french-75": french75Still,
 };
 
 const SCROLL_LENGTH_VH = 38;
@@ -19,6 +55,28 @@ const VIDEO_LERP = 0.22;
 const SEEK_THRESHOLD_SECONDS = 1 / 48;
 const SEEK_INTERVAL_MS = 40;
 const VIDEO_PHASE_RATIO = 0.94;
+const AGE_CONFIRMATION_KEY = "the-sip-age-confirmed";
+
+function useReducedMotion() {
+  const [reduceMotion, setReduceMotion] = useState(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReduceMotion(media.matches);
+    media.addEventListener?.("change", update);
+    return () => media.removeEventListener?.("change", update);
+  }, []);
+
+  return reduceMotion;
+}
+
+function hasAgeConfirmation() {
+  try {
+    return window.sessionStorage.getItem(AGE_CONFIRMATION_KEY) === "yes";
+  } catch {
+    return false;
+  }
+}
 
 // Global source-time markers in the approved 81-second Magnific master.
 const experienceTiming = {
@@ -38,7 +96,13 @@ const chapters = [
     transitionStart: 18, chapterEnd: 20.75,
     heroLine: "You want what bites back.", year: "1919?", place: "FLORENCE",
     historyTitle: "A stronger Americano after dark.",
-    history: "The Negroni is commonly associated with Florence around 1919. In the familiar story, Count Camillo Negroni asked for a stronger Americano made with gin instead of soda, though the details remain disputed.",
+    history: [
+      "The Negroni is commonly linked to Florence around 1919. The best-known account says Count Camillo Negroni asked bartender Fosco Scarselli at Caffè Casoni to make his Americano stronger by replacing its soda water with gin. It is a memorable origin story, but the surviving record is incomplete, so the date and details are best treated as tradition rather than certainty.",
+      "The drink grew from an existing Italian aperitivo: the Americano, made with bitter liqueur, sweet vermouth and soda. That combination was already part of the bar culture of the period. The change in the Negroni story is small but decisive. Gin gives the drink a firmer spirit base, while the vermouth keeps its sweetness and the bitter liqueur holds the finish in balance.",
+      "A second detail in the familiar story is the garnish. The new drink was said to arrive with an orange instead of the Americano’s lemon, giving the glass its own visual cue. The orange’s soft sweetness sits against the bitter, herbal centre of the drink; the garnish became part of the classic presentation that many bars still use.",
+      "The recipe is remembered for its simple equal-parts structure: gin, bitter aperitivo and sweet vermouth. That proportion is easy to carry from one bar to another, but the ingredients still matter. A drier gin makes the botanicals more direct, while a richer vermouth softens the bitter edge. The finished drink is stirred cold and served over fresh ice.",
+      "The Negroni’s place in cocktail culture did not depend on a single dramatic invention. Its appeal comes from a clear shape: bitter, sweet and strong in the same glass. The Florence story remains its most familiar beginning, while the gaps in the historical record leave room for caution. That tension between a vivid legend and an enduring formula is part of the drink’s character.",
+    ],
     recipeTitle: "Equal parts. No apologies.",
     ingredients: [["30 ml", "Gin"], ["30 ml", "Campari"], ["30 ml", "Sweet vermouth"]],
     preparation: "Stir with ice until chilled. Strain over fresh ice in a rocks glass.",
@@ -137,84 +201,212 @@ const chapters = [
   },
 ];
 
-function IntroMoment() {
-  return (
-    <header className="intro-moment" aria-labelledby="intro-title">
-      <div className="intro-copy">
-        <h1 id="intro-title"><span>DISCOVER</span><span>YOUR</span><span>DESIRE</span></h1>
-        <p>Every drink opens another world.</p>
-      </div>
-      <div className="scroll-instruction" aria-label="Scroll to enter">
-        <span>SCROLL TO ENTER</span>
-        <span className="scroll-symbol" aria-hidden="true"><i /></span>
-      </div>
-    </header>
-  );
-}
+const chapterThemes = {
+  negroni: "light",
+  "dirty-martini": "light",
+  margarita: "dark",
+  "mai-tai": "light",
+  manhattan: "light",
+  "espresso-martini": "dark",
+  "old-fashioned": "dark",
+  "french-75": "light",
+};
 
 const journeyEmotions = ["Temptation", "Provocation", "Desire", "Excess", "Power", "Obsession", "Authority", "Spark"];
 
-function SiteNavigation({ openSection, onToggle, onClose, onHome, onJourneySelect }) {
-  return (
-    <nav className={`site-nav${openSection ? " is-expanded" : ""}`} aria-label="Main navigation">
-      <div className="nav-capsule">
-        <button className="brand-button organic-button" type="button" onClick={onHome} aria-label="The Sip — return to the beginning">
-          <span className="brand-mark"><img src={sipLogo} alt="" /></span>
-          <span>THE SIP</span>
-        </button>
-        <button className="nav-link organic-button" type="button" onClick={() => onToggle("journey")} aria-expanded={openSection === "journey"} aria-controls="journey-panel">JOURNEY</button>
-        <button className="nav-link organic-button" type="button" onClick={() => onToggle("about")} aria-expanded={openSection === "about"} aria-controls="about-panel">ABOUT US</button>
-      </div>
+const navigationChapters = chapters.map((chapter, index) => ({ ...chapter, emotion: journeyEmotions[index] }));
 
-      <div className={`nav-drawer${openSection ? " is-open" : ""}`} aria-hidden={!openSection}>
-        <div className="nav-drawer-top">
-          <span>{openSection === "journey" ? "Choose your desire" : "About us"}</span>
-          <button className="close-button organic-button" type="button" onClick={onClose} aria-label={`Close ${openSection ?? "navigation"}`}>×</button>
-        </div>
-        <div id="journey-panel" className={`drawer-view journey-view${openSection === "journey" ? " is-active" : ""}`}>
-          <ol>
-            {chapters.map((chapter, index) => (
-              <li key={chapter.id}>
-                <button type="button" onClick={() => onJourneySelect(chapter)}>
-                  <span className="journey-number">{chapter.number}</span>
-                  <span className="journey-name">{chapter.title}</span>
-                  <span className="journey-emotion">{journeyEmotions[index]}</span>
-                </button>
-              </li>
-            ))}
-          </ol>
-        </div>
-        <section id="about-panel" className={`drawer-view about-view${openSection === "about" ? " is-active" : ""}`} aria-labelledby="about-title">
-          <h2 id="about-title">THE SIP</h2>
-          <p>An immersive journey through classic cocktails, their stories, recipes and the worlds they inspire.</p>
-          <p>Built as a continuous visual experience where every cocktail opens another world.</p>
-        </section>
+function SiteNavigation(props) {
+  return <SharedNavigation {...props} logoSrc={sipLogo} aboutLogoSrc={originalSipLogo} chapters={navigationChapters} />;
+}
+
+function CosmicIntro({ onEnter, onHome, reduceMotion, selectedChapterId }) {
+  const [openSection, setOpenSection] = useState(null);
+  const [leaving, setLeaving] = useState(false);
+  const [introReady, setIntroReady] = useState(false);
+  const [touchStart, setTouchStart] = useState(null);
+  const rootRef = useRef(null);
+
+  useLayoutEffect(() => {
+    const previousRootOverflow = document.documentElement.style.overflow;
+    const previousBodyOverflow = document.body.style.overflow;
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    const root = rootRef.current;
+    const nav = root?.querySelector(".sip-navbar");
+    const titleLines = [...(root?.querySelectorAll(".cosmic-intro-title span") ?? [])];
+    const cta = root?.querySelector(".scroll-instruction");
+    const poster = root?.querySelector(".cosmic-intro-video");
+    let cancelled = false;
+    setIntroReady(false);
+    // Readiness describes real asset work, not the length of a decorative reveal.
+    Promise.all([poster.decode().catch(() => {}), document.fonts.ready]).then(() => {
+      if (!cancelled) setIntroReady(true);
+    });
+    gsap.set(nav, { clearProps: "all" });
+    const tl = gsap.timeline({ defaults: { ease: "power2.out" } });
+    if (reduceMotion) {
+      gsap.set([poster, ...titleLines, cta], { clearProps: "all" });
+    } else {
+      // A visible headline from the first frame; small travel, no clipping or long blank wait.
+      const travel = motionDistance(window.innerWidth, window.innerHeight);
+      tl.fromTo(poster, { opacity: 0.19 }, { opacity: 1, duration: MOTION.cinematic, clearProps: "opacity" }, 0)
+        .fromTo(titleLines, { opacity: 0.3, y: travel / 2 }, { opacity: 1, y: 0, duration: MOTION.panel, clearProps: "all" }, 0.06)
+        .fromTo(cta, { opacity: 0.35 }, { opacity: 1, duration: MOTION.content, clearProps: "opacity" }, 0.22);
+    }
+    return () => {
+      cancelled = true;
+      tl.kill();
+      document.documentElement.style.overflow = previousRootOverflow;
+      document.body.style.overflow = previousBodyOverflow;
+    };
+  }, [reduceMotion]);
+
+  const enter = useCallback((chapter = null) => {
+    if (!introReady || leaving) return;
+    setLeaving(true);
+    setOpenSection(null);
+    const root = rootRef.current;
+    if (reduceMotion || !root) {
+      onEnter(chapter?.id ?? null);
+      return;
+    }
+    const travel = motionDistance(window.innerWidth, window.innerHeight);
+    gsap.timeline({ onComplete: () => onEnter(chapter?.id ?? null) })
+      .to(root.querySelector(".scroll-instruction"), { opacity: 0, y: travel / 2, duration: MOTION.content, ease: MOTION.easeInOut })
+      .to(root.querySelector(".cosmic-intro-title"), { opacity: 0, y: -travel, duration: MOTION.close, ease: MOTION.easeInOut }, "<")
+      .to(root.querySelector(".sip-navbar"), { opacity: 0, duration: MOTION.content, ease: MOTION.easeInOut }, "<0.04");
+  }, [introReady, leaving, onEnter, reduceMotion]);
+
+  const onWheel = (event) => {
+    if (openSection || event.target.closest(".sip-navbar__drawer")) return;
+    if (event.deltaY > 6 && !leaving) {
+      event.preventDefault();
+      enter();
+    }
+  };
+  const onTouchStart = (event) => {
+    if (openSection || event.target.closest(".sip-navbar__drawer")) return;
+    setTouchStart(event.touches[0]?.clientY ?? null);
+  };
+  const onTouchEnd = (event) => {
+    if (openSection || event.target.closest(".sip-navbar__drawer")) return;
+    const end = event.changedTouches[0]?.clientY;
+    if (touchStart !== null && end !== undefined && touchStart - end > 30) enter();
+    setTouchStart(null);
+  };
+
+  return (
+    <main ref={rootRef} className={`cosmic-intro${leaving ? " is-leaving" : ""}`} aria-label="Discover your desire" onWheel={onWheel} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+      <img className="cosmic-intro-video" src={MASTER_VIDEO.poster} alt="" aria-hidden="true" />
+
+      <SiteNavigation
+        openSection={openSection}
+        theme="dark"
+        variant="hero"
+        selectedChapterId={selectedChapterId}
+        onToggle={(section) => setOpenSection((current) => current === section ? null : section)}
+        onClose={() => setOpenSection(null)}
+        onHome={onHome}
+        onJourneySelect={(chapter) => enter(chapter)}
+      />
+      <div className="intro-editorial">
+        <h1 className="cosmic-intro-title" aria-label="DISCOVER YOUR DESIRE"><span>DISCOVER</span><span>YOUR</span><span>DESIRE</span></h1>
+        <div className="cosmic-intro-handwriting" aria-hidden="true" hidden />
       </div>
-    </nav>
+      <Action className="scroll-instruction sip-scroll-action" variant="text" aria-label={introReady ? "Scroll to enter the journey" : "Preparing your journey"} onClick={enter} loading={!introReady} loadingLabel="PREPARING YOUR JOURNEY" disabled={leaving}>
+        SCROLL TO ENTER <ArrowIcon direction="down" />
+      </Action>
+    </main>
   );
 }
 
-function CocktailHud({ chapter, openPanel, onPanelToggle }) {
+function CocktailHud({ chapter: currentChapter, openPanel, modalActive, onPanelToggle, onKeyDown, hudRef }) {
+  const touchStartYRef = useRef(null);
+  const [lastChapter, setLastChapter] = useState(currentChapter);
+  const chapter = currentChapter ?? lastChapter;
+  const useMotionLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
+  useMotionLayoutEffect(() => {
+    if (currentChapter) setLastChapter(currentChapter);
+    const root = hudRef.current;
+    if (!root || !chapter) return undefined;
+    const media = gsap.matchMedia();
+    media.add({ reduce: "(prefers-reduced-motion: reduce)", full: "(prefers-reduced-motion: no-preference)" }, (context) => {
+      if (context.conditions.reduce) {
+        gsap.set([root, ...root.querySelectorAll(".cocktail-label > *, .info-trigger, .info-panel")], { clearProps: "opacity,transform" });
+        if (!currentChapter) setLastChapter(null);
+        return;
+      }
+      if (!currentChapter) {
+        gsap.to(root, { opacity: 0, duration: MOTION.fast, ease: MOTION.easeInOut, onComplete: () => setLastChapter(null) });
+      } else if (openPanel) {
+        gsap.fromTo(root.querySelector(".info-control.is-open .info-panel"), { opacity: .3, y: 3 }, { opacity: 1, y: 0, duration: MOTION.content, ease: MOTION.ease, clearProps: "opacity,transform" });
+      } else {
+        gsap.fromTo(root.querySelectorAll(".cocktail-label > *, .info-trigger"), { opacity: .4, y: motionDistance(window.innerWidth, window.innerHeight) }, { opacity: 1, y: 0, stagger: .035, duration: MOTION.content, ease: MOTION.ease, clearProps: "opacity,transform" });
+      }
+    });
+    return () => media.revert();
+  }, [currentChapter?.id, openPanel]);
+  const isNegroni = chapter?.id === "negroni";
   if (!chapter) return <div className="cocktail-hud" aria-hidden="true" />;
+  const theme = chapterThemes[chapter.id] ?? "dark";
+  const handlePanelWheel = (event) => {
+    if (event.deltaY < 0 && event.currentTarget.scrollTop <= 0) {
+      event.preventDefault();
+      onPanelToggle(null);
+    }
+  };
+  const handleTouchStart = (event) => { touchStartYRef.current = event.touches[0]?.clientY ?? null; };
+  const handleTouchEnd = (event) => {
+    const endY = event.changedTouches[0]?.clientY;
+    if (touchStartYRef.current !== null && endY - touchStartYRef.current > 48 && event.currentTarget.scrollTop <= 0) onPanelToggle(null);
+    touchStartYRef.current = null;
+  };
 
   return (
-    <aside className="cocktail-hud is-visible" aria-label={`${chapter.title} information`}>
-      <div className="cocktail-label" aria-live="polite"><span>{chapter.number}</span><strong>{chapter.title}</strong></div>
+    <aside ref={hudRef} className={`cocktail-hud is-visible theme-${theme}${isNegroni && openPanel ? " negroni-prototype" : ""}${openPanel ? " is-expanded" : ""}`} inert={!currentChapter ? "" : undefined} aria-hidden={!currentChapter ? "true" : undefined} role={modalActive ? "dialog" : undefined} aria-modal={modalActive ? "true" : undefined} aria-labelledby={`${chapter.id}-cocktail-name`} onKeyDown={onKeyDown}>
+      <div className="cocktail-label" aria-live="polite">
+        {openPanel ? <>
+          <p className="cocktail-meta"><span>{chapter.number} / 08</span>{!isNegroni ? <><span aria-hidden="true">—</span><span>{chapter.emotion}</span></> : null}</p>
+          <strong id={`${chapter.id}-cocktail-name`}>{chapter.title}</strong>
+          {isNegroni ? <p className="negroni-emotion">{chapter.emotion}</p> : null}
+        </> : <>
+          <p className="cocktail-meta"><span>{chapter.number} / 08</span></p>
+          <strong id={`${chapter.id}-cocktail-name`}>{chapter.title}</strong>
+          <p className="cocktail-emotion">{chapter.emotion}</p>
+        </>}
+      </div>
+      {openPanel ? (
+        <>
+          <div className="panel-tabs" role="group" aria-label="Cocktail details">
+            <Action size="compact" selected={openPanel === "history"} onClick={() => { if (openPanel !== "history") onPanelToggle("history"); }}>HISTORY</Action>
+            <Action size="compact" selected={openPanel === "recipe"} onClick={() => { if (openPanel !== "recipe") onPanelToggle("recipe"); }}>RECIPE</Action>
+          </div>
+          <Action variant="close" className="panel-back sip-panel-close" onClick={(event) => onPanelToggle(null, event.currentTarget)} aria-label="Close details and return to the cocktail scene"><CloseIcon /><span>Close</span></Action>
+        </>
+      ) : null}
       <div className="cocktail-actions">
-        <div className={`info-control history-control${openPanel === "history" ? " is-open" : ""}`}>
-          <button type="button" className="info-trigger organic-button" onClick={() => onPanelToggle("history")} aria-expanded={openPanel === "history"} aria-controls={`${chapter.id}-history-panel`}>HISTORY</button>
-          <section id={`${chapter.id}-history-panel`} className="info-panel history-panel" aria-hidden={openPanel !== "history"} aria-labelledby={`${chapter.id}-history-title`}>
+        <div data-sip-control="information" className={`info-control history-control${openPanel === "history" ? " is-open" : ""}`}>
+          <Action size="fill" className="info-trigger" onClick={(event) => onPanelToggle("history", event.currentTarget)} aria-expanded={openPanel === "history"} aria-controls={`${chapter.id}-history-panel`}>HISTORY</Action>
+          <section id={`${chapter.id}-history-panel`} className="info-panel history-panel" aria-hidden={openPanel !== "history"} aria-labelledby={`${chapter.id}-history-title`} onWheel={handlePanelWheel} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
             <div className="panel-eyebrow"><span>{chapter.year}</span><span>{chapter.place}</span></div>
-            <h2 id={`${chapter.id}-history-title`}>{chapter.historyTitle}</h2>
-            <p>{chapter.history}</p>
+            <h2 id={`${chapter.id}-history-title`}>The history</h2>
+            <h3>{chapter.historyTitle}</h3>
+            <div className="history-copy">{(Array.isArray(chapter.history) ? chapter.history : [chapter.history]).map((paragraph, index) => <p key={paragraph} className={isNegroni && index === 0 ? "negroni-lead" : undefined}>{paragraph}</p>)}</div>
           </section>
         </div>
-        <div className={`info-control recipe-control${openPanel === "recipe" ? " is-open" : ""}`}>
-          <button type="button" className="info-trigger organic-button" onClick={() => onPanelToggle("recipe")} aria-expanded={openPanel === "recipe"} aria-controls={`${chapter.id}-recipe-panel`}>RECIPE</button>
-          <section id={`${chapter.id}-recipe-panel`} className="info-panel recipe-panel" aria-hidden={openPanel !== "recipe"} aria-labelledby={`${chapter.id}-recipe-title`}>
-            <h2 id={`${chapter.id}-recipe-title`}>Ingredients</h2>
-            <ol>{chapter.ingredients.map(([amount, ingredient]) => <li key={ingredient}><strong>{amount}</strong><span>{ingredient}</span></li>)}</ol>
-            <div className="recipe-method"><p><b>Preparation</b>{chapter.preparation}</p>{chapter.serve ? <p><b>Serve</b>{chapter.serve}</p> : null}<p><b>Garnish</b>{chapter.garnish}</p></div>
+        <div data-sip-control="information" className={`info-control recipe-control${openPanel === "recipe" ? " is-open" : ""}`}>
+          <Action size="fill" className="info-trigger" onClick={(event) => onPanelToggle("recipe", event.currentTarget)} aria-expanded={openPanel === "recipe"} aria-controls={`${chapter.id}-recipe-panel`}>RECIPE</Action>
+          <section id={`${chapter.id}-recipe-panel`} className="info-panel recipe-panel" aria-hidden={openPanel !== "recipe"} aria-labelledby={`${chapter.id}-recipe-title`} onWheel={handlePanelWheel} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+            <div className="panel-eyebrow"><span>THE POUR</span><span>{chapter.number} / 08</span></div>
+            {isNegroni ? <h3 className="negroni-recipe-lead">{chapter.recipeTitle}</h3> : null}
+            <div className="recipe-layout">
+              <div className="recipe-ingredients">
+                <h2 id={`${chapter.id}-recipe-title`}>Ingredients</h2>
+                <ol>{chapter.ingredients.map(([amount, ingredient]) => <li key={ingredient}><strong>{amount}</strong><span>{ingredient}</span></li>)}</ol>
+              </div>
+              <div className="recipe-method"><p><b>Preparation</b>{chapter.preparation}</p>{chapter.serve ? <p><b>Serve</b>{chapter.serve}</p> : null}<p><b>Garnish</b>{chapter.garnish}</p></div>
+            </div>
           </section>
         </div>
       </div>
@@ -224,68 +416,218 @@ function CocktailHud({ chapter, openPanel, onPanelToggle }) {
 
 function Ending({ layerRef, contentRef, onEnterAgain }) {
   return (
-    <section className="ending-layer" ref={layerRef} aria-label="End of the journey">
-      <div className="ending-content" ref={contentRef} aria-hidden="true">
-        <h2>YOU FOUND<br />YOUR DESIRE.</h2>
-        <p>But desire never really ends.</p>
-        <button className="enter-again organic-button" type="button" onClick={onEnterAgain}>ENTER AGAIN</button>
-      </div>
+    <section className="ending-layer" ref={layerRef} aria-label="End of the journey" aria-hidden="true" inert="">
+      <EndingContent contentRef={contentRef} onEnterAgain={onEnterAgain} logoSrc={sipLogo} />
     </section>
   );
 }
 
-export function App() {
+function CinematicExperience({ onReturnToIntro, initialChapterId = null, onChapterChange, onMediaError }) {
   const [openSection, setOpenSection] = useState(null);
   const [activeChapterId, setActiveChapterId] = useState(null);
   const [openPanel, setOpenPanel] = useState(null);
+  const [panelModalActive, setPanelModalActive] = useState(false);
+  const [videoSource] = useState(() => selectExperienceVideo({
+    viewportWidth: window.innerWidth,
+    saveData: navigator.connection?.saveData === true,
+  }, VIDEO_SOURCES));
+  const hudRef = useRef(null);
+  const pendingPanelFlipRef = useRef(null);
+  const panelFlipRef = useRef(null);
+  const panelLockedRef = useRef(false);
+  const panelOpenRef = useRef(false);
+  const panelScrollYRef = useRef(0);
+  const lastPanelTriggerRef = useRef(null);
+  const pageOverflowRef = useRef(null);
   const worldRef = useRef(null);
   const stageRef = useRef(null);
   const videoRef = useRef(null);
   const endingLayerRef = useRef(null);
   const endingContentRef = useRef(null);
+  const heroHeadingRef = useRef(null);
   const scrollTriggerRef = useRef(null);
   const activeChapterRef = useRef(null);
-  const panelSwapTimerRef = useRef(null);
   const targetTimeRef = useRef(0);
   const smoothTimeRef = useRef(0);
   const lastRequestedTimeRef = useRef(-1);
   const rafRef = useRef(null);
+  const resumeVideoControllerRef = useRef(null);
   const mediaReadyRef = useRef(false);
   const debugRef = useRef(null);
+  useLayoutEffect(() => {
+    const video = videoRef.current;
+    // Same breakpoint/crop as the approved immersive Intro. Pin geometry stays
+    // untouched: only the incoming media matches the outgoing media's framing.
+    const desktopIntro = window.matchMedia("(min-width: 1100px) and (min-height: 600px)");
+    const syncFraming = () => {
+      const scale = getPortalHandoffScale(video.currentTime, desktopIntro.matches ? 1.2 : 1);
+      video.style.transform = scale === 1 ? "none" : `scale(${scale})`;
+    };
+    syncFraming();
+    video.addEventListener("loadeddata", syncFraming);
+    video.addEventListener("seeked", syncFraming);
+    desktopIntro.addEventListener("change", syncFraming);
+    return () => {
+      video.removeEventListener("loadeddata", syncFraming);
+      video.removeEventListener("seeked", syncFraming);
+      desktopIntro.removeEventListener("change", syncFraming);
+      video.style.removeProperty("transform");
+    };
+  }, []);
   const timingAudit = new URLSearchParams(window.location.search).has("timing-audit");
   const debugScroll = import.meta.env.DEV && new URLSearchParams(window.location.search).get("debugScroll") === "1";
 
-  const scrollToTime = useCallback((time) => {
+  const scrollToTime = useCallback((time, behavior = "smooth") => {
     const scrollTrigger = scrollTriggerRef.current;
     if (!scrollTrigger) return;
     const videoProgress = Math.min(1, Math.max(0, time / MASTER_VIDEO.measuredDuration));
     const pageProgress = videoProgress * VIDEO_PHASE_RATIO;
     const targetScroll = scrollTrigger.start + (scrollTrigger.end - scrollTrigger.start) * pageProgress;
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    window.scrollTo({ top: targetScroll, behavior: reduceMotion ? "auto" : "smooth" });
+    window.scrollTo({ top: targetScroll, behavior });
   }, []);
 
+  const togglePanel = useCallback((nextPanel, trigger) => {
+    const hud = hudRef.current;
+    const shouldClose = !nextPanel || openPanel === nextPanel;
+    if (shouldClose && !openPanel) return;
+
+    panelFlipRef.current?.kill();
+    panelFlipRef.current = null;
+    const changesFrame = !openPanel || shouldClose;
+    pendingPanelFlipRef.current = null;
+    if (changesFrame && hud) {
+      pendingPanelFlipRef.current = {
+        state: Flip.getState(hud),
+        opening: !shouldClose && !openPanel,
+        closing: shouldClose,
+      };
+    }
+
+    if (shouldClose) {
+      setOpenPanel(null);
+      return;
+    }
+
+    if (!panelLockedRef.current) {
+      panelScrollYRef.current = window.scrollY;
+      const scrollbarWidth = Math.max(0, window.innerWidth - document.documentElement.clientWidth);
+      pageOverflowRef.current = {
+        root: document.documentElement.style.overflow,
+        body: document.body.style.overflow,
+        bodyPaddingRight: document.body.style.paddingRight,
+      };
+      panelLockedRef.current = true;
+      panelOpenRef.current = true;
+      if (scrollbarWidth) {
+        const currentPadding = Number.parseFloat(getComputedStyle(document.body).paddingRight) || 0;
+        document.body.style.paddingRight = `${currentPadding + scrollbarWidth}px`;
+      }
+      document.documentElement.style.overflow = "hidden";
+      document.body.style.overflow = "hidden";
+      const video = videoRef.current;
+      if (video) {
+        if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+        targetTimeRef.current = video.currentTime;
+        smoothTimeRef.current = video.currentTime;
+        lastRequestedTimeRef.current = video.currentTime;
+      }
+      setPanelModalActive(true);
+    }
+    if (!openPanel) lastPanelTriggerRef.current = trigger ?? null;
+    setOpenPanel(nextPanel);
+  }, [openPanel]);
+
   const closeTransientUi = useCallback(() => {
-    window.clearTimeout(panelSwapTimerRef.current);
     setOpenSection(null);
-    setOpenPanel(null);
-  }, []);
+    if (openPanel) togglePanel(null);
+  }, [openPanel, togglePanel]);
 
   const returnToBeginning = useCallback(() => {
     closeTransientUi();
-    scrollToTime(0);
-  }, [closeTransientUi, scrollToTime]);
+    onReturnToIntro();
+  }, [closeTransientUi, onReturnToIntro]);
 
-  const togglePanel = useCallback((nextPanel) => {
-    window.clearTimeout(panelSwapTimerRef.current);
-    setOpenPanel((current) => {
-      if (current === nextPanel) return null;
-      if (current) {
-        panelSwapTimerRef.current = window.setTimeout(() => setOpenPanel(nextPanel), 190);
-        return null;
+  const handlePanelKeyDown = useCallback((event) => {
+    if (!panelModalActive || event.key !== "Tab") return;
+    const focusable = [...(hudRef.current?.querySelectorAll("button:not(:disabled), a[href], [tabindex]:not([tabindex='-1'])") ?? [])]
+      .filter((element) => element.getClientRects().length > 0 && !element.closest("[aria-hidden='true']"));
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }, [panelModalActive]);
+
+  useLayoutEffect(() => {
+    const hud = hudRef.current;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const pending = pendingPanelFlipRef.current;
+    pendingPanelFlipRef.current = null;
+
+    if (openPanel) {
+      hud?.querySelector(`.panel-tabs button[aria-pressed='true']`)?.focus({ preventScroll: true });
+    }
+
+    const finishClose = () => {
+      if (!panelLockedRef.current) return;
+      const overflow = pageOverflowRef.current;
+      if (overflow) {
+        document.documentElement.style.overflow = overflow.root;
+        document.body.style.overflow = overflow.body;
+        document.body.style.paddingRight = overflow.bodyPaddingRight;
+        pageOverflowRef.current = null;
       }
-      return nextPanel;
-    });
+      panelLockedRef.current = false;
+      panelOpenRef.current = false;
+      setPanelModalActive(false);
+      window.scrollTo({ top: panelScrollYRef.current, behavior: "auto" });
+      ScrollTrigger.update();
+      resumeVideoControllerRef.current?.();
+      lastPanelTriggerRef.current?.focus({ preventScroll: true });
+    };
+
+    if (!pending || !hud) {
+      if (!openPanel && panelLockedRef.current) finishClose();
+      return;
+    }
+
+    if (reduceMotion) {
+      if (pending.closing) finishClose();
+      return;
+    }
+
+    panelFlipRef.current = Flip.from(pending.state, {
+        duration: pending.opening ? MOTION.panel : MOTION.close,
+        ease: "power2.inOut",
+        absolute: true,
+        scale: true,
+        onComplete: () => {
+          panelFlipRef.current = null;
+          if (pending.closing) finishClose();
+        },
+      });
+  }, [openPanel]);
+
+  useEffect(() => () => {
+    panelFlipRef.current?.kill();
+    panelFlipRef.current = null;
+    if (panelLockedRef.current) {
+      const overflow = pageOverflowRef.current;
+      if (overflow) {
+        document.documentElement.style.overflow = overflow.root;
+        document.body.style.overflow = overflow.body;
+        document.body.style.paddingRight = overflow.bodyPaddingRight;
+        pageOverflowRef.current = null;
+      }
+      panelLockedRef.current = false;
+      panelOpenRef.current = false;
+    }
   }, []);
 
   useEffect(() => {
@@ -296,9 +638,17 @@ export function App() {
     window.addEventListener("keydown", handleKeyDown);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
-      window.clearTimeout(panelSwapTimerRef.current);
     };
   }, [closeTransientUi]);
+
+  useEffect(() => {
+    if (!document.fonts?.ready) return undefined;
+    let cancelled = false;
+    document.fonts.ready.then(() => {
+      if (!cancelled) ScrollTrigger.refresh();
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   useLayoutEffect(() => {
     const world = worldRef.current;
@@ -415,6 +765,7 @@ export function App() {
     const startVideoController = () => {
       if (rafRef.current === null) rafRef.current = requestAnimationFrame(updateVideoFrame);
     };
+    resumeVideoControllerRef.current = startVideoController;
 
     const context = gsap.context(() => {
         const duration = MASTER_VIDEO.measuredDuration;
@@ -435,7 +786,6 @@ export function App() {
           activeChapterRef.current = nextId;
           setActiveChapterId(nextId);
           setOpenPanel(null);
-          window.clearTimeout(panelSwapTimerRef.current);
         };
         const setVideoTarget = (progress) => {
           const value = Math.min(1, Math.max(0, progress));
@@ -457,25 +807,33 @@ export function App() {
             anticipatePin: 1,
             invalidateOnRefresh: true,
             onUpdate: (self) => {
+              if (panelOpenRef.current) return;
               debugScrollVelocity = self.getVelocity();
               const videoProgress = Math.min(1, self.progress / VIDEO_PHASE_RATIO);
               const endingProgress = Math.min(1, Math.max(0, (self.progress - VIDEO_PHASE_RATIO) / (1 - VIDEO_PHASE_RATIO)));
               setVideoTarget(videoProgress);
               endingLayer.style.opacity = String(endingProgress);
               const contentProgress = Math.min(1, Math.max(0, (endingProgress - 0.72) / 0.28));
+              const endingState = getEndingState(contentProgress);
+              const endingButton = endingContent.querySelector(".enter-again");
               endingContent.style.opacity = String(contentProgress);
               endingContent.style.transform = `translateY(${(1 - contentProgress) * 18}px)`;
-              endingContent.style.visibility = contentProgress > 0.02 ? "visible" : "hidden";
-              endingContent.style.pointerEvents = contentProgress > 0.85 ? "auto" : "none";
-              endingContent.setAttribute("aria-hidden", contentProgress > 0.85 ? "false" : "true");
+              endingContent.style.visibility = endingState.visible ? "visible" : "hidden";
+              endingContent.style.pointerEvents = endingState.visible ? "auto" : "none";
+              endingLayer.style.pointerEvents = endingState.visible ? "auto" : "none";
+              if (!endingState.visible && endingLayer.contains(document.activeElement)) {
+                heroHeadingRef.current?.focus({ preventScroll: true });
+              }
+              endingLayer.setAttribute("aria-hidden", String(endingState.ariaHidden));
+              endingLayer.toggleAttribute("inert", endingState.inert);
+              endingContent.setAttribute("aria-hidden", String(endingState.ariaHidden));
+              endingContent.toggleAttribute("inert", endingState.inert);
+              if (endingButton) endingButton.tabIndex = endingState.tabIndex;
             },
           },
         });
         scrollTriggerRef.current = timeline.scrollTrigger;
-        timeline
-          .to({}, { duration }, 0)
-          .to(".scroll-instruction", { y: "-1.2rem", opacity: 0, duration: 1.35 }, 0.25)
-          .to(".intro-copy", { y: "-7vh", opacity: 0, duration: 2.35 }, 1.05);
+        timeline.to({}, { duration }, 0);
 
         const initializeVideo = () => {
           const progress = timeline.scrollTrigger?.progress ?? 0;
@@ -511,12 +869,35 @@ export function App() {
       video.removeEventListener("seeking", handleSeeking);
       video.removeEventListener("seeked", handleSeeked);
       mediaReadyRef.current = false;
+      resumeVideoControllerRef.current = null;
+      if (pageOverflowRef.current) {
+        document.documentElement.style.overflow = pageOverflowRef.current.root;
+        document.body.style.overflow = pageOverflowRef.current.body;
+        document.body.style.paddingRight = pageOverflowRef.current.bodyPaddingRight;
+        pageOverflowRef.current = null;
+      }
+      panelLockedRef.current = false;
+      panelOpenRef.current = false;
       scrollTriggerRef.current = null;
       context.revert();
     };
   }, []);
 
   const activeChapter = chapters.find((chapter) => chapter.id === activeChapterId) ?? null;
+  useEffect(() => {
+    if (activeChapterId) onChapterChange?.(activeChapterId);
+  }, [activeChapterId, onChapterChange]);
+  useEffect(() => {
+    heroHeadingRef.current?.focus({ preventScroll: true });
+  }, []);
+
+  useEffect(() => {
+    if (!initialChapterId) return undefined;
+    const chapter = chapters.find((item) => item.id === initialChapterId);
+    if (!chapter) return undefined;
+    const frame = requestAnimationFrame(() => scrollToTime(getChapterTargetTime(chapter), "auto"));
+    return () => cancelAnimationFrame(frame);
+  }, [initialChapterId, scrollToTime]);
 
   return (
     <main className="experience">
@@ -530,22 +911,289 @@ export function App() {
         data-black-frame-start={experienceTiming.blackFrameStart ?? "none"}
         data-video-end={experienceTiming.videoEnd}
         data-video-fps={MASTER_VIDEO.frameRate}
+        data-video-variant={videoSource === VIDEO_SOURCES.mobile ? "mobile" : "desktop"}
       >
         <div className="world-stage" ref={stageRef}>
-          <div className="master-media" aria-hidden="true"><video ref={videoRef} src={MASTER_VIDEO.src} preload="auto" muted playsInline controls={false} tabIndex={-1} /></div>
-          <IntroMoment />
+          <div className="master-media" aria-hidden="true"><video ref={videoRef} src={videoSource} poster={MASTER_VIDEO.poster} preload="auto" muted playsInline controls={false} tabIndex={-1} onError={onMediaError} /></div>
+          <h1 ref={heroHeadingRef} tabIndex={-1} className="experience-focus-target">Cinematic cocktail journey</h1>
           <SiteNavigation
             openSection={openSection}
+            theme={activeChapter ? chapterThemes[activeChapter.id] : "dark"}
+            variant="scene"
+            modalOpen={panelModalActive}
+            currentChapterId={activeChapterId}
             onToggle={(section) => { setOpenPanel(null); setOpenSection((current) => current === section ? null : section); }}
             onClose={() => setOpenSection(null)}
             onHome={returnToBeginning}
-            onJourneySelect={(chapter) => { setOpenSection(null); setOpenPanel(null); scrollToTime(chapter.heroPeak); }}
+            onJourneySelect={(chapter) => { setOpenSection(null); setOpenPanel(null); scrollToTime(getChapterTargetTime(chapter)); }}
           />
-          <CocktailHud chapter={activeChapter} openPanel={openPanel} onPanelToggle={togglePanel} />
+
+          <CocktailHud chapter={activeChapter} openPanel={openPanel} modalActive={panelModalActive} onPanelToggle={togglePanel} onKeyDown={handlePanelKeyDown} hudRef={hudRef} />
           <Ending layerRef={endingLayerRef} contentRef={endingContentRef} onEnterAgain={returnToBeginning} />
           {debugScroll ? <output className="scroll-debug" ref={debugRef} aria-live="off" /> : null}
         </div>
       </section>
     </main>
+  );
+}
+
+function ReducedMotionExperience({ onReturnToIntro, initialChapterId = null, onChapterChange, mediaFallback = false }) {
+  const initialIndex = Math.max(0, chapters.findIndex((chapter) => chapter.id === initialChapterId));
+  const [activeIndex, setActiveIndex] = useState(initialIndex);
+  const [openSection, setOpenSection] = useState(null);
+  const [openPanel, setOpenPanel] = useState(null);
+  const [showEnding, setShowEnding] = useState(false);
+  const hudRef = useRef(null);
+  const headingRef = useRef(null);
+  const endingHeadingRef = useRef(null);
+  const lastPanelTriggerRef = useRef(null);
+  const chapter = chapters[activeIndex];
+  const panelOpen = Boolean(openPanel);
+  useEffect(() => {
+    onChapterChange?.(chapter.id);
+  }, [chapter.id, onChapterChange]);
+
+  const closePanel = useCallback(() => setOpenPanel(null), []);
+  const togglePanel = useCallback((nextPanel, trigger) => {
+    if (!nextPanel || openPanel === nextPanel) {
+      closePanel();
+      return;
+    }
+    if (!openPanel) lastPanelTriggerRef.current = trigger ?? null;
+    setOpenPanel(nextPanel);
+  }, [closePanel, openPanel]);
+
+  useLayoutEffect(() => {
+    if (openPanel) hudRef.current?.querySelector(`.panel-tabs button[aria-pressed='true']`)?.focus({ preventScroll: true });
+  }, [openPanel]);
+
+  useEffect(() => {
+    if (!panelOpen) return undefined;
+    const previousRootOverflow = document.documentElement.style.overflow;
+    const previousBodyOverflow = document.body.style.overflow;
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closePanel();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusable = [...(hudRef.current?.querySelectorAll("button:not(:disabled), a[href], [tabindex]:not([tabindex='-1'])") ?? [])]
+        .filter((element) => element.getClientRects().length > 0 && !element.closest("[aria-hidden='true']"));
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.documentElement.style.overflow = previousRootOverflow;
+      document.body.style.overflow = previousBodyOverflow;
+      requestAnimationFrame(() => lastPanelTriggerRef.current?.focus({ preventScroll: true }));
+    };
+  }, [closePanel, panelOpen]);
+
+  useEffect(() => {
+    // Let the closing drawer restore its trigger first, then focus the destination.
+    const frame = requestAnimationFrame(() => {
+      const heading = showEnding ? endingHeadingRef.current : headingRef.current;
+      heading?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [activeIndex, showEnding]);
+
+  const selectChapter = (selectedChapter) => {
+    const nextIndex = chapters.findIndex((item) => item.id === selectedChapter.id);
+    if (nextIndex < 0) return;
+    setOpenSection(null);
+    setOpenPanel(null);
+    setShowEnding(false);
+    setActiveIndex(nextIndex);
+  };
+
+  return (
+    <main className="experience reduced-motion-experience" data-reduced-motion="true">
+      <section className={`reduced-motion-stage theme-${chapterThemes[chapter.id]}`} aria-label="Reduced-motion cocktail journey">
+        {!showEnding ? <>
+          <img className="reduced-motion-still" src={REDUCED_MOTION_STILLS[chapter.id]} alt="" aria-hidden="true" />
+          <div className="reduced-motion-vignette" aria-hidden="true" />
+          <h1 ref={headingRef} className="experience-focus-target" tabIndex={-1}>{chapter.title}: {mediaFallback ? "Video unavailable. Still-image cocktail journey" : "reduced-motion cocktail journey"}</h1>
+        </> : null}
+        <SiteNavigation
+          openSection={openSection}
+          theme={chapterThemes[chapter.id]}
+          variant="scene"
+          modalOpen={panelOpen}
+          currentChapterId={chapter.id}
+          onToggle={(section) => setOpenSection((current) => current === section ? null : section)}
+          onClose={() => setOpenSection(null)}
+          onHome={onReturnToIntro}
+          onJourneySelect={selectChapter}
+        />
+        {showEnding ? (
+          <section className="ending-layer is-static" aria-label="End of the journey">
+            <EndingContent staticMode headingRef={endingHeadingRef} onEnterAgain={onReturnToIntro} logoSrc={sipLogo} />
+          </section>
+        ) : <>
+
+          <div className="reduced-motion-controls" inert={panelOpen ? "" : undefined}>
+            <Action size="compact" onClick={() => setActiveIndex((index) => Math.max(0, index - 1))} disabled={activeIndex === 0}>PREVIOUS</Action>
+            <p><span>{chapter.number} / 08</span><strong>{chapter.emotion}</strong></p>
+            <Action size="compact" onClick={() => activeIndex === chapters.length - 1 ? setShowEnding(true) : setActiveIndex((index) => index + 1)}>{activeIndex === chapters.length - 1 ? "FINISH" : "NEXT"}</Action>
+          </div>
+          <CocktailHud chapter={chapter} openPanel={openPanel} modalActive={panelOpen} onPanelToggle={togglePanel} onKeyDown={() => {}} hudRef={hudRef} />
+        </>}
+      </section>
+    </main>
+  );
+}
+
+export function App() {
+  const [screen, setScreen] = useState(() => hasAgeConfirmation() ? "intro" : "gate");
+  const [gatePhase, setGatePhase] = useState("entering");
+  const [gateNavigation, setGateNavigation] = useState(null);
+  const [selectedChapterId, setSelectedChapterId] = useState(null);
+  const [mediaFailed, setMediaFailed] = useState(false);
+  // A ref hands state across motion-mode remounts without retargeting the scroll controller.
+  const lastActiveChapterRef = useRef(null);
+  const rememberChapter = useCallback((id) => { lastActiveChapterRef.current = id; }, []);
+  const reduceMotion = useReducedMotion();
+  const experienceMode = getExperienceMode(reduceMotion || mediaFailed);
+  const gateRef = useRef(null);
+  const questionRef = useRef(null);
+  const actionsRef = useRef(null);
+  const yesButtonRef = useRef(null);
+  const deniedHeadingRef = useRef(null);
+
+  useEffect(() => {
+    if (screen !== "gate") return undefined;
+    if (reduceMotion) {
+      setGatePhase("ready");
+      return undefined;
+    }
+    const timeline = gsap.timeline({ defaults: { ease: "power3.out" } });
+    timeline.fromTo(questionRef.current, { y: motionDistance(window.innerWidth, window.innerHeight) / 2, opacity: 0.5 }, { y: 0, opacity: 1, duration: MOTION.panel });
+    timeline.fromTo(actionsRef.current, { opacity: 0.5 }, { opacity: 1, duration: MOTION.content, onStart: () => setGatePhase("ready") }, 0.1);
+    return () => timeline.kill();
+  }, [reduceMotion, screen]);
+
+  useEffect(() => {
+    if (screen === "gate") questionRef.current?.focus({ preventScroll: true });
+    if (screen === "denied") deniedHeadingRef.current?.focus({ preventScroll: true });
+  }, [screen]);
+
+  useLayoutEffect(() => {
+    if (screen !== "denied") return undefined;
+    const media = gsap.matchMedia();
+    media.add("(prefers-reduced-motion: no-preference)", () => {
+      gsap.fromTo(deniedHeadingRef.current?.parentElement, { opacity: .4, y: motionDistance(window.innerWidth, window.innerHeight) / 2 }, { opacity: 1, y: 0, duration: MOTION.content, ease: MOTION.ease, clearProps: "opacity,transform" });
+    });
+    return () => media.revert();
+  }, [screen]);
+
+  const confirmAge = () => {
+    if (gatePhase !== "ready") return;
+    try {
+      window.sessionStorage.setItem(AGE_CONFIRMATION_KEY, "yes");
+    } catch {}
+    if (reduceMotion) {
+      setScreen("intro");
+      return;
+    }
+    setGatePhase("exiting");
+    gsap.timeline({ onComplete: () => setScreen("intro") })
+      .to(actionsRef.current, { y: -motionDistance(window.innerWidth, window.innerHeight) / 2, opacity: 0, duration: MOTION.content, ease: MOTION.easeInOut })
+      .to(questionRef.current, { y: -motionDistance(window.innerWidth, window.innerHeight), opacity: 0, duration: MOTION.close, ease: MOTION.easeInOut }, "<");
+  };
+
+  const denyAge = () => {
+    setGatePhase("exiting");
+    if (reduceMotion) {
+      setScreen("denied");
+      return;
+    }
+    gsap.timeline({ onComplete: () => setScreen("denied") })
+      .to(actionsRef.current, { opacity: 0, y: 8, duration: 0.2, ease: "power1.in" })
+      .to(questionRef.current, { opacity: 0, y: -10, duration: 0.25, ease: "power1.in" }, "<")
+      .to(gateRef.current, { opacity: 0, duration: 0.22 }, "<0.04");
+  };
+
+  const enterExperience = (chapterId = null) => {
+    if (chapterId) setSelectedChapterId(chapterId);
+    setScreen("experience");
+  };
+  const returnToIntro = () => {
+    lastActiveChapterRef.current = null;
+    setMediaFailed(false);
+    setSelectedChapterId(null);
+    setScreen("intro");
+  };
+  const returnToAgeGate = () => {
+    setGateNavigation(null);
+    setGatePhase("entering");
+    setScreen("gate");
+  };
+
+  if (screen === "experience") {
+    const ExperienceComponent = experienceMode === "reduced" ? ReducedMotionExperience : CinematicExperience;
+    return <><ExperienceComponent initialChapterId={lastActiveChapterRef.current ?? selectedChapterId} onReturnToIntro={returnToIntro} onChapterChange={rememberChapter} onMediaError={() => setMediaFailed(true)} mediaFallback={mediaFailed} /><LiquidAfterimage /></>;
+  }
+  if (screen === "intro") return <><CosmicIntro onEnter={(chapterId) => enterExperience(chapterId ?? selectedChapterId)} onHome={returnToIntro} reduceMotion={reduceMotion} selectedChapterId={selectedChapterId} /><LiquidAfterimage /></>;
+
+  return (
+    <>
+      {screen === "gate" ? (
+        <main key="age-check" className={`age-gate-screen${gatePhase === "exiting" ? " is-exiting" : ""}`} ref={gateRef}>
+          <img className="age-gate-environment" src={MASTER_VIDEO.poster} alt="" aria-hidden="true" />
+          <LiquidAfterimage />
+          <SiteNavigation
+            openSection={gateNavigation}
+            theme="dark"
+            variant="age"
+            selectedChapterId={selectedChapterId}
+            onToggle={(section) => setGateNavigation((current) => current === section ? null : section)}
+            onClose={() => setGateNavigation(null)}
+            onHome={() => setGateNavigation(null)}
+            onJourneySelect={(chapter) => { setSelectedChapterId(chapter.id); setGateNavigation(null); }}
+          />
+          <section className="age-gate-content" aria-labelledby="age-gate-title">
+            <div className="age-gate-prompt">
+              <h1 id="age-gate-title" ref={questionRef} tabIndex={-1} aria-describedby="age-gate-explanation">
+                <span>ARE YOU OF</span>
+                <span>LEGAL AGE?</span>
+              </h1>
+            </div>
+            <div className="age-gate-decision">
+              <p className="age-gate-note" id="age-gate-explanation">This cocktail journey is for visitors of legal drinking age in their country.</p>
+              <div className="age-gate-actions" ref={actionsRef}>
+                <Action ref={yesButtonRef} variant="primary" className="sip-action--age" onClick={confirmAge} disabled={gatePhase !== "ready"} aria-label="Yes, I am of legal age">YES</Action>
+                <Action variant="secondary" className="sip-action--age" onClick={denyAge} disabled={gatePhase !== "ready"} aria-label="No, I am not of legal age">NO</Action>
+              </div>
+            </div>
+          </section>
+        </main>
+      ) : (
+        <main key="access-denied" className="access-denied-screen" aria-labelledby="access-denied-title">
+          <img className="access-denied-environment" src={MASTER_VIDEO.poster} alt="" aria-hidden="true" />
+          <LiquidAfterimage />
+          <section>
+            <p className="sip-eyebrow">BEFORE THE FIRST SIP</p>
+            <h1 id="access-denied-title" ref={deniedHeadingRef} tabIndex={-1}>SORRY, NOT THIS TIME.</h1>
+            <p>This experience is restricted to visitors of legal drinking age in their country.</p>
+            <Action variant="text" onClick={returnToAgeGate}>RETURN TO AGE CHECK <ArrowIcon /></Action>
+          </section>
+        </main>
+      )}
+    </>
   );
 }

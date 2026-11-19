@@ -1,0 +1,207 @@
+/* Approved minimal direction: static interface rollout.
+   No film, controller, timeline, modal or focus-management changes.
+   The approved 1440x900 Intro remains in immersive-intro.css. */
+:is(.age-gate-screen, .access-denied-screen, .experience),
+.sip-navbar__drawer {
+  --sip-font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --sip-color-surface: #141218;
+  --sip-color-raised: #242128;
+  --sip-color-border: #49434f;
+  --sip-color-muted: #c0b8c5;
+  --sip-navbar-height: 60px;
+  --sip-navbar-logo-height: 40px;
+  --sip-navbar-width: 360px;
+}
+
+/* The same compact, opaque navigation object across entry and film routes. */
+:is(.age-gate-screen, .experience) .sip-navbar__bar {
+  width: min(100%, var(--sip-navbar-width));
+  min-height: var(--sip-navbar-height);
+  padding: 5px 12px;
+  column-gap: 14px;
+  border: 1px solid rgb(255 248 242 / 14%);
+  border-radius: 28px;
+  background: #141218;
+  box-shadow: none;
+}
+:is(.age-gate-screen, .experience) .sip-navbar__bar .sip-action--nav {
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  font: 500 12px/1 var(--sip-font-ui);
+  letter-spacing: .025em;
+}
+:is(.age-gate-screen, .experience) .sip-navbar__bar .sip-action--nav .sip-action__content {
+  padding: 0;
+  background: transparent;
+  text-decoration: none;
+}
+:is(.age-gate-screen, .experience) .sip-navbar__home { padding: 0 4px; border-radius: 10px; }
+:is(.age-gate-screen, .access-denied-screen, .experience) .sip-action--primary:not(:disabled),
+.experience .panel-tabs .sip-action[aria-pressed="true"] {
+  color: var(--sip-color-night);
+  border-color: var(--sip-color-cream);
+  background: var(--sip-color-cream);
+}
+
+/* Quiet entry: the existing age decision and recovery flows are unchanged. */
+.age-gate-handwriting { display: none; }
+.age-gate-content { width: min(100%, 640px); }
+.age-gate-content h1 {
+  font: 500 clamp(2rem, 3.4vw, 3rem)/1.15 var(--sip-font-display);
+  letter-spacing: -.025em;
+}
+.age-gate-note { max-width: 38ch; line-height: 1.65; }
+.age-gate-actions { margin-top: 32px; gap: 12px; }
+.access-denied-screen h1 { font-weight: 500; font-size: clamp(1.5rem, 3vw, 2.5rem); }
+
+/* Spatial index: typography and selection, never thumbnail cards. */
+.sip-navbar__drawer {
+  left: 50%;
+  right: auto;
+  width: min(760px, 100%);
+  padding: 32px;
+  border: 1px solid #49434f;
+  border-radius: 24px;
+  background: #141218;
+  color: var(--sip-color-cream);
+  font-family: var(--sip-font-ui);
+  transform: translateX(-50%);
+}
+.sip-navbar__drawer-top { padding-bottom: 24px; border-bottom-color: #49434f; }
+.sip-navbar__drawer-eyebrow { color: var(--sip-color-muted); font-size: 12px; letter-spacing: .08em; }
+.sip-navbar__drawer-top h2 { font-size: clamp(1.125rem, 2vw, 1.375rem); line-height: 1.4; }
+.sip-navbar__list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 24px; }
+.sip-navbar__list li + li { margin: 0; padding: 0; border: 0; }
+.sip-navbar__list .sip-action--row {
+  min-height: 92px;
+  padding: 16px 12px;
+  border: 1px solid transparent;
+  border-bottom-color: #343039;
+  border-radius: 12px;
+}
+.sip-navbar__list .sip-action--row .sip-action__content { grid-template-columns: 24px minmax(0, 1fr); gap: 6px 12px; }
+.sip-navbar__list .sip-journey-number { color: var(--sip-color-muted); font-size: 12px; }
+.sip-navbar__list .sip-journey-name { font: 500 1rem/1.4 var(--sip-font-ui); letter-spacing: .015em; }
+.sip-navbar__list .sip-journey-emotion { font-size: .8125rem; line-height: 1.5; }
+.sip-navbar__list .sip-journey-state { grid-column: 2; grid-row: 3; font-size: .75rem; }
+.sip-navbar__list .sip-action--row:is([aria-current="location"], [data-selected="true"]) {
+  border-color: var(--sip-color-pink);
+  background: #30212f;
+}
+.sip-navbar__about-reading:not([hidden]) { grid-template-columns: 92px minmax(0, 1fr); gap: 32px; }
+.sip-navbar__about-logo { max-width: 92px; }
+.sip-navbar__about-copy p { font-family: var(--sip-font-ui); line-height: 1.7; }
+.sip-navbar__about-copy p:first-child { font-size: 1.125rem; }
+
+/* Small local opaque captions keep labels readable over every world. */
+.cocktail-hud:not(.is-expanded) {
+  width: min(440px, calc(100% - var(--sip-edge-left) - var(--sip-edge-right)));
+  padding: 0;
+  gap: 12px;
+  border: 0;
+  background: transparent;
+}
+.cocktail-hud:not(.is-expanded) .cocktail-label {
+  width: max-content;
+  max-width: 100%;
+  gap: 8px;
+  padding: 14px 18px;
+  border: 1px solid #49434f;
+  border-radius: 16px;
+  background: #141218;
+}
+.cocktail-label strong { font: 500 clamp(1.25rem, 1.8vw, 1.625rem)/1.2 var(--sip-font-display); letter-spacing: -.025em; }
+.cocktail-meta { font-size: 12px; line-height: 1.5; letter-spacing: .035em; }
+.cocktail-meta span:first-child { color: var(--sip-color-cream); }
+.cocktail-hud:not(.is-expanded) .cocktail-label strong { order: 1; }
+.cocktail-hud:not(.is-expanded) .cocktail-emotion {
+  order: 2; margin: 0; color: var(--sip-color-cream);
+  font: 500 12px/1.5 var(--sip-font-ui); letter-spacing: .1em;
+}
+.cocktail-hud:not(.is-expanded) .cocktail-meta { order: 3; }
+.cocktail-actions { gap: 8px; }
+.cocktail-hud:not(.is-expanded) .info-control { flex: 0 1 120px; width: 120px; }
+.cocktail-hud:not(.is-expanded) .info-trigger { border-color: #49434f; background: #141218; font-size: 12px; letter-spacing: .035em; }
+
+
+/* A calm opaque reading object; no blur, no extra imagery. */
+.cocktail-hud.is-expanded {
+  inset: max(40px, env(safe-area-inset-top)) var(--sip-edge-right) max(40px, env(safe-area-inset-bottom)) var(--sip-edge-left);
+  max-width: 1040px;
+  max-height: 760px;
+  padding: 32px;
+  border-color: #49434f;
+  border-radius: 24px;
+  background: #141218;
+}
+.cocktail-hud.is-expanded .cocktail-label { padding-bottom: 24px; border-bottom-color: #49434f; }
+.cocktail-hud.is-expanded .cocktail-label strong { font-size: clamp(1.375rem, 2.2vw, 2rem); font-weight: 500; }
+.cocktail-hud.is-expanded .info-panel h2 { font: 500 1.25rem/1.4 var(--sip-font-ui); letter-spacing: -.015em; }
+.cocktail-hud.is-expanded .history-panel h3 { color: var(--sip-color-cream); font-size: 1.375rem; line-height: 1.5; }
+.cocktail-hud.is-expanded .info-panel p { font-size: 1.0625rem; line-height: 1.75; }
+.cocktail-hud.is-expanded .history-copy { gap: 24px; }
+.recipe-panel li { border-bottom-color: #49434f; }
+.recipe-panel li strong { color: var(--sip-color-cream); }
+.recipe-layout { gap: 48px; }
+.reduced-motion-controls .sip-action { background: #141218; }
+/* Personality remains in the chapter caption; the stepper needs only the count. */
+.reduced-motion-controls p strong { display: none; }
+.reduced-motion-controls p { margin: 0; line-height: 1.4; }
+
+/* Final quiet world and compact footer; existing ending timing is untouched. */
+.ending-content { width: min(100%, 880px); }
+.ending-content h2 { font: 500 clamp(1.75rem, 3.6vw, 3.25rem)/1.2 var(--sip-font-display); letter-spacing: -.025em; }
+.ending-content p { margin-block: 24px 32px; font-size: 1rem; line-height: 1.65; }
+.ending-content .enter-again { height: 48px; min-width: 208px; font-size: 12px; }
+/* Relative positioning adds the final pause without recentering the approved
+   heading/CTA group. Existing flow spacing, type, content and surface stay put. */
+.ending-footer { position: relative; top: max(0px, calc(20svh - 64px)); display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 24px; margin-top: 64px; padding-top: 24px; border-top: 1px solid #343039; }
+.ending-footer .ending-logo { width: 64px; margin: 0; }
+.ending-footer small { color: var(--sip-color-muted); font: 400 12px/1.6 var(--sip-font-ui); }
+
+@media (hover: hover) {
+  :is(.age-gate-screen, .experience) .sip-navbar__bar .sip-action--nav:hover { border-color: rgb(255 248 242 / 24%); color: var(--sip-color-cream); background: #242128; }
+  :is(.age-gate-screen, .access-denied-screen, .experience) .sip-action--primary:not(:disabled):hover { color: var(--sip-color-night); border-color: white; background: white; }
+  .sip-navbar__list .sip-action--row:not([aria-current]):not([data-selected]):hover { border-color: #645a6d; background: #242128; }
+}
+
+@media (max-width: 700px) {
+  :is(.age-gate-screen, .experience) { --sip-navbar-height: 56px; --sip-navbar-logo-height: 34px; }
+  .sip-navbar__drawer { left: 0; right: 0; width: 100%; padding: 24px; border-radius: 20px; transform: none; }
+  .sip-navbar__list { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .sip-navbar__list .sip-action--row { min-height: 80px; }
+  .sip-navbar__about-reading:not([hidden]) { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .cocktail-hud:not(.is-expanded) { width: calc(100% - var(--sip-edge-left) - var(--sip-edge-right)); }
+  .cocktail-hud.is-expanded { inset: 0; max-width: none; max-height: none; padding: max(24px, env(safe-area-inset-top)) var(--sip-edge-right) var(--sip-edge-bottom) var(--sip-edge-left); border: 0; border-radius: 0; }
+  .cocktail-hud.is-expanded .info-panel p { font-size: 1rem; }
+  .recipe-layout { gap: 24px; }
+  .ending-footer { top: max(0px, calc(20svh - 40px)); margin-top: 40px; gap: 16px; }
+}
+
+/* Extend the approved portal-first foreground to smaller screens, not the media. */
+@media (max-width: 1099px), (max-height: 599px) {
+  .cosmic-intro .sip-navbar__bar { width: min(100%, 360px); min-height: 56px; padding: 5px 12px; border: 1px solid rgb(255 248 242 / 14%); border-radius: 28px; background: #141218; }
+  .cosmic-intro .sip-navbar__bar .sip-action--nav { padding: 0 10px; font: 500 12px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; letter-spacing: .025em; }
+  .cosmic-intro .sip-navbar__bar .sip-action--nav .sip-action__content { padding: 0; background: transparent; }
+  .cosmic-intro .cosmic-intro-title { inset: auto; top: 76svh; left: 50%; display: flex; flex-direction: row; gap: .32em; width: max-content; max-width: 94%; height: auto; font: 500 clamp(16px, 4.2vw, 30px)/1.25 var(--sip-font-display); letter-spacing: -.025em; transform: translateX(-50%); }
+  .cosmic-intro .cosmic-intro-title span { position: static; inset: auto; font: inherit; letter-spacing: inherit; }
+  .cosmic-intro .sip-scroll-action { top: auto; bottom: max(24px, env(safe-area-inset-bottom)); width: 208px; height: 48px; padding: 0 20px; border: 1px solid var(--sip-color-cream); border-radius: 999px; color: var(--sip-color-night); background: var(--sip-color-cream); box-shadow: none; font: 500 12px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; letter-spacing: .035em; }
+  .cosmic-intro .sip-scroll-action .sip-action__content { width: 100%; justify-content: space-between; text-decoration: none; }
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+  :is(.age-gate-screen, .experience) { --sip-navbar-height: 56px; --sip-navbar-logo-height: 34px; }
+  .sip-navbar__drawer { padding: 20px 24px; }
+  .sip-navbar__list .sip-action--row { min-height: 76px; }
+  .cosmic-intro .cosmic-intro-title { top: auto; bottom: 32px; left: var(--sip-edge-left); font-size: 20px; transform: none; }
+  .cosmic-intro .sip-scroll-action { left: auto; right: var(--sip-edge-right); }
+  .cocktail-hud:not(.is-expanded) { width: 44%; }
+  .cocktail-hud:not(.is-expanded) .cocktail-label { padding: 10px 14px; }
+  .cocktail-hud.is-expanded { inset: 12px var(--sip-edge-right); max-height: none; padding: 16px 24px; gap: 12px; border: 1px solid #49434f; border-radius: 20px; }
+  .cocktail-hud.is-expanded .cocktail-label { padding-bottom: 12px; }
+  .ending-content { display: flex; flex-direction: column; gap: 12px; text-align: center; }
+  .ending-content p { margin: 0; }
+  .ending-footer { top: max(0px, calc(20svh - 16px)); margin-top: 16px; padding-top: 16px; }
+}

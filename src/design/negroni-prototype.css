@@ -1,0 +1,71 @@
+/* Negroni-only interaction proof. Other worlds deliberately retain their existing UI. */
+.negroni-prototype:not(.is-expanded) { width: min(440px, calc(100% - var(--sip-edge-left) - var(--sip-edge-right))); gap: 20px; }
+.negroni-prototype:not(.is-expanded) .cocktail-label { padding: 0; gap: 10px; border: 0; border-radius: 0; background: transparent; text-shadow: 0 1px 12px #141218; }
+.negroni-prototype .cocktail-meta { font-size: 11px; letter-spacing: .1em; }
+.negroni-prototype:not(.is-expanded) .cocktail-label strong { font: 500 clamp(26px, 2.6vw, 38px)/1.2 var(--sip-font-display); letter-spacing: -.035em; }
+.negroni-prototype .negroni-emotion { order: 2; margin: 0; color: #fff8f2; font: 500 11px/1.5 var(--sip-font-ui); letter-spacing: .13em; }
+.negroni-prototype:not(.is-expanded) .cocktail-actions { gap: 20px; }
+.negroni-prototype:not(.is-expanded) .info-control { width: auto; flex: 0 0 auto; min-width: 80px; height: 44px; }
+.negroni-prototype:not(.is-expanded) .info-trigger { width: auto; min-width: 80px; height: 44px; padding: 0 4px; border: 0; border-bottom: 1px solid rgb(255 248 242 / 45%); border-radius: 0; background: transparent; color: #fff8f2; font-size: 11px; letter-spacing: .09em; text-shadow: 0 1px 8px #141218; }
+.negroni-prototype .sip-action { transition: color 180ms ease, border-color 180ms ease, background-color 180ms ease; }
+.negroni-prototype .sip-action:not(:disabled):active .sip-action__content { transform: translateY(1px) scale(.99); transition-duration: 120ms; }
+.negroni-prototype .sip-action:focus-visible { outline: 2px solid #dc6ca8; outline-offset: 4px; box-shadow: none; }
+.negroni-prototype.is-expanded {
+  inset: 80px var(--sip-edge-right); max-width: 1000px; max-height: 720px; padding: 40px 48px;
+  gap: 24px; border: 1px solid #dcd2d0; border-radius: 20px; background: #fff8f2; color: #241923;
+  box-shadow: 0 12px 40px rgb(10 6 14 / 12%); transform-origin: left bottom;
+}
+.negroni-prototype.is-expanded .cocktail-label { grid-row: 1; grid-column: 1; border: 0; padding: 0; gap: 12px; }
+.negroni-prototype.is-expanded .cocktail-label strong { font-size: clamp(28px, 3vw, 42px); color: #241923; }
+.negroni-prototype.is-expanded .negroni-emotion { display: none; }
+.negroni-prototype.is-expanded .cocktail-meta span { color: #705866; }
+.negroni-prototype.is-expanded .panel-tabs { grid-row: 2; gap: 24px; }
+.negroni-prototype.is-expanded .panel-tabs .sip-action { min-width: 80px; height: 44px; padding: 0 2px; border: 0; border-bottom: 1px solid transparent; border-radius: 0; background: transparent; color: #705866; font-size: 11px; letter-spacing: .08em; }
+.negroni-prototype.is-expanded .panel-tabs .sip-action[aria-pressed="true"] { color: #241923; background: transparent; border-bottom-color: #a3366d; }
+.negroni-prototype.is-expanded .panel-back { grid-row: 1; width: 44px; height: 44px; padding: 0; border: 1px solid transparent; border-radius: 50%; color: #241923; background: transparent; }
+.negroni-prototype.is-expanded .panel-back span:not(.sip-action__content) { display: none; }
+.negroni-prototype.is-expanded .panel-back .sip-icon { width: 20px; height: 20px; }
+.negroni-prototype.is-expanded .cocktail-actions { position: relative; }
+.negroni-prototype.is-expanded .info-control:not(.is-open) { display: none; }
+.negroni-prototype.is-expanded .info-control.is-open { position: relative; border: 0; background: transparent; }
+.negroni-prototype.is-expanded .info-panel { color: #241923; padding: 0 12px 24px 0; }
+.negroni-prototype.is-expanded .info-control.is-open .info-panel { animation: negroni-content-resolve 300ms ease both; }
+.negroni-prototype.is-expanded .panel-eyebrow { color: #705866; font-size: 11px; letter-spacing: .09em; }
+.negroni-prototype.is-expanded .info-panel h2 { margin: 20px 0 24px; font: 500 11px/1.5 var(--sip-font-ui); color: #705866; text-transform: uppercase; letter-spacing: .1em; }
+.negroni-prototype.is-expanded .history-panel h3, .negroni-prototype.is-expanded .negroni-recipe-lead { max-width: 36ch; margin: 24px 0; color: #241923; font: 500 26px/1.35 var(--sip-font-ui); letter-spacing: -.025em; }
+.negroni-prototype.is-expanded .info-panel p { max-width: 65ch; color: #3b3037; font: 400 16px/1.75 var(--sip-font-ui); }
+.negroni-prototype.is-expanded .info-panel p.negroni-lead { font-size: 18px; line-height: 1.7; color: #241923; }
+.negroni-prototype.is-expanded .history-copy { gap: 24px; }
+.negroni-prototype .recipe-layout { gap: 56px; }
+.negroni-prototype.is-expanded .recipe-panel ol { gap: 0; }
+.negroni-prototype.is-expanded .recipe-panel li { grid-template-columns: 72px minmax(0, 1fr); gap: 16px; padding: 18px 0; border: 0; border-bottom: 1px solid #dfd3d5; }
+.negroni-prototype.is-expanded .recipe-panel li strong { color: #705866; font: 500 12px/1.5 var(--sip-font-ui); text-transform: uppercase; font-variant-numeric: tabular-nums; }
+.negroni-prototype.is-expanded .recipe-panel li span { color: #241923; font: 500 18px/1.5 var(--sip-font-ui); }
+.negroni-prototype.is-expanded .recipe-method { margin-top: 20px; gap: 28px; }
+.negroni-prototype .recipe-method b { color: #705866; font-size: 11px; }
+@media (hover: hover) {
+  .negroni-prototype:not(.is-expanded) .info-trigger:hover { color: #f3a8d1; border-color: #f3a8d1; background: transparent; }
+  .negroni-prototype.is-expanded .panel-tabs .sip-action:hover { color: #a3366d; background: transparent; border-bottom-color: #a3366d; }
+  .negroni-prototype.is-expanded .panel-back:hover { color: #a3366d; background: #f4e7ec; border-color: #e8c9d8; }
+}
+@keyframes negroni-content-resolve { from { opacity: .3; } to { opacity: 1; } }
+@media (max-width: 700px) {
+  .negroni-prototype.is-expanded { inset: 12px; max-height: none; margin: 0; padding: 24px; gap: 20px; border: 1px solid #dcd2d0; border-radius: 18px; }
+  .negroni-prototype.is-expanded .cocktail-label strong { font-size: 28px; }
+  .negroni-prototype.is-expanded .history-panel h3, .negroni-prototype.is-expanded .negroni-recipe-lead { font-size: 23px; }
+  .negroni-prototype.is-expanded .info-panel p.negroni-lead { font-size: 17px; }
+  .negroni-prototype .recipe-layout { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+}
+/* Match the existing short-landscape reading adaptation; desktop geometry stays approved. */
+@media (max-height: 520px) and (orientation: landscape) {
+  .negroni-prototype.is-expanded {
+    inset: 12px var(--sip-edge-right) 12px var(--sip-edge-left);
+    max-height: none; padding: 16px 24px; gap: 12px;
+  }
+  .negroni-prototype.is-expanded .cocktail-label { gap: 6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .negroni-prototype .sip-action, .negroni-prototype .sip-action__content { transition-duration: .01ms; }
+  .negroni-prototype.is-expanded .info-control.is-open .info-panel { animation: none; }
+  .negroni-prototype .sip-action:not(:disabled):active .sip-action__content { transform: none; }
+}

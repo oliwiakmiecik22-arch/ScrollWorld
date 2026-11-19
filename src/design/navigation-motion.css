@@ -1,0 +1,16 @@
+/* Motion only: keep the approved translateX(-50%) centering untouched.
+   Independent translate adds a tiny transient vertical offset; GSAP clears it
+   on settle. No layout, type, color, surface or resting geometry overrides. */
+.sip-navbar__drawer {
+  translate: 0 var(--sip-nav-offset, 0px);
+}
+
+/* An exiting surface remains painted, but never intercepts input or focus. */
+.sip-navbar__drawer[inert],
+.sip-navbar__scrim[inert] {
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sip-navbar__drawer { translate: none; }
+}

@@ -1,0 +1,60 @@
+/* Focused age-scene review. The approved settled Intro geometry is untouched. */
+.age-gate-screen .age-gate-environment {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  opacity: .19; pointer-events: none; z-index: -1;
+}
+.age-gate-screen .age-gate-content { width: min(100%, 680px); gap: 0; }
+.age-gate-screen .age-gate-logo { display: block; width: 84px; height: auto; margin: 0 0 36px; }
+.age-gate-screen .age-gate-content h1 { font-size: clamp(26px, 3vw, 42px); line-height: 1.24; letter-spacing: -.025em; }
+.age-gate-screen .age-gate-note { max-width: 37ch; margin: 24px 0 0; color: #c0b8c5; font: 400 14px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.age-gate-screen .age-gate-actions { display: flex; justify-content: center; gap: 12px; margin-top: 32px; }
+.age-gate-actions .sip-action--age {
+  width: 104px; min-width: 104px; height: 48px; padding: 0 20px;
+  border: 1px solid rgb(255 248 242 / 25%); border-radius: 24px;
+  background: #141218; color: #fff8f2;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: .06em; box-shadow: none;
+  transition: color 180ms ease, border-color 180ms ease, background-color 180ms ease;
+}
+.age-gate-actions .sip-action--age.sip-action--primary:not(:disabled) { background: #fff8f2; color: #141218; border-color: #fff8f2; }
+@media (hover: hover) {
+  .age-gate-actions .sip-action--age.sip-action--primary:not(:disabled):hover { background: #f3c5df; border-color: #f3c5df; color: #141218; }
+  .age-gate-actions .sip-action--age.sip-action--secondary:not(:disabled):hover { background: #242128; border-color: #c0b8c5; color: #fff8f2; }
+}
+.age-gate-actions .sip-action--age:not(:disabled):active .sip-action__content { transform: translateY(1px) scale(.98); transition-duration: 120ms; }
+.age-gate-actions .sip-action--age:focus-visible { outline: 2px solid #f3a8d1; outline-offset: 4px; box-shadow: none; }
+/* Honest preparation status in the existing control, never an extra loading object. */
+.cosmic-intro .sip-scroll-action[aria-busy="true"] { font-size: 10px; color: #fff8f2; border-color: #49434f; background: #141218; }
+.cosmic-intro .sip-scroll-action { animation: none; }
+
+/* Denial alone: a fresh screen prevents gate-exit opacity from leaking into it. */
+.access-denied-screen { position: relative; isolation: isolate; }
+.access-denied-screen .access-denied-environment {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  opacity: .19; pointer-events: none; z-index: -1;
+}
+.access-denied-screen .sip-eyebrow { color: #f3a8d1; font-size: 11px; letter-spacing: .1em; }
+.access-denied-screen h1 { line-height: 1.25; }
+.access-denied-screen h1:focus { outline: none; }
+.access-denied-screen .sip-action--text {
+  min-width: 44px; height: 48px; padding: 0 20px;
+  font-size: 12px; letter-spacing: .04em;
+}
+.access-denied-screen .sip-action--text:focus-visible { outline: 2px solid #f3a8d1; outline-offset: 4px; box-shadow: none; }
+@media (hover: hover) {
+  .access-denied-screen .sip-action--text:not(:disabled):hover { color: #f3a8d1; background: transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .access-denied-screen .sip-action, .access-denied-screen .sip-action__content { transition-duration: .01ms; }
+  .access-denied-screen .sip-action:not(:disabled):active .sip-action__content { transform: none; }
+}
+
+@media (max-width: 700px) {
+  .age-gate-screen .age-gate-logo { width: 72px; margin-bottom: 32px; }
+  .age-gate-screen .age-gate-content h1 { font-size: 27px; line-height: 1.3; }
+  .age-gate-screen .age-gate-note { max-width: 31ch; font-size: 13px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .age-gate-actions .sip-action--age, .age-gate-actions .sip-action__content { transition-duration: .01ms; }
+  .age-gate-actions .sip-action--age:not(:disabled):active .sip-action__content { transform: none; }
+}

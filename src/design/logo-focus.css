@@ -1,0 +1,23 @@
+/* Home stays a calm anchor. Keyboard focus belongs to the navigation surface,
+   not a rectangle or background tile around the logo artwork. */
+.sip-navbar .sip-navbar__bar .sip-navbar__home:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+.sip-navbar .sip-navbar__home:focus-visible::after {
+  content: "";
+  position: absolute;
+  left: calc(50% - 12px);
+  bottom: -2px;
+  width: 24px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--sip-color-pink);
+  pointer-events: none;
+}
+@media (forced-colors: active) {
+  .sip-navbar .sip-navbar__home:focus-visible::after {
+    background: Highlight;
+    forced-color-adjust: none;
+  }
+}
